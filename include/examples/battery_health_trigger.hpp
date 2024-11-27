@@ -1,0 +1,23 @@
+#ifndef BATTERY_HEALTH_TRIGGER_HPP
+#define BATTERY_HEALTH_TRIGGER_HPP
+
+#include <ros2bag_triggered/trigger_base.hpp>
+#include <sensor_msgs/msg/battery_state.hpp>
+
+namespace ros2bag_triggered::examples
+{
+
+class BatteryHealthTrigger : public TriggerBase<sensor_msgs::msg::BatteryState>
+{
+public:
+    explicit BatteryHealthTrigger(uint64_t persistance_duration, const rclcpp::Clock::SharedPtr clock)
+    : TriggerBase(persistance_duration, clock) {}
+    
+    ~BatteryHealthTrigger() override = default;
+    
+    bool isTriggered(const sensor_msgs::msg::BatteryState::SharedPtr msg) override;
+};
+
+}  // namespace ros2bag_triggered::examples
+
+#endif  // BATTERY_HEALTH_TRIGGER_HPP
