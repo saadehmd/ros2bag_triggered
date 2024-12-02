@@ -15,8 +15,10 @@ public:
     ~NavSatInvalidFixTrigger() override = default;
     
     bool isTriggered(const sensor_msgs::msg::NavSatFix::SharedPtr msg) override;
-};
 
+    static const std::string name;
+};
+const std::string NavSatInvalidFixTrigger::name = "NavSatInvalidFixTrigger";
 } // namespace ros2bag_triggered::examples
 
 #endif // NAVSAT_INVALID_FIX_TRIGGER_HPP

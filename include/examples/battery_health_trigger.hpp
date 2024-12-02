@@ -16,8 +16,11 @@ public:
     ~BatteryHealthTrigger() override = default;
     
     bool isTriggered(const sensor_msgs::msg::BatteryState::SharedPtr msg) override;
-};
 
+    static const std::string name;
+    
+};
+const std::string BatteryHealthTrigger::name = "BatteryHealthTrigger";
 }  // namespace ros2bag_triggered::examples
 
 #endif  // BATTERY_HEALTH_TRIGGER_HPP

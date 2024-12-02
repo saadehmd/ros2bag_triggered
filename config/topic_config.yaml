@@ -1,0 +1,26 @@
+
+/robot/battery_state:
+  msg_type: sensor_msgs/msg/BatteryState
+  triggers:
+    - type: BatteryStateTrigger
+      persistance_duration: 3.0
+
+#/robot/pose:
+#  msg_type: geometry_msgs/msg/PoseStamped
+#  triggers:
+#    - type: ZoneTriggerWithPoseStamped
+#      persistance_duration: 10.0
+#      extra_args:
+#        trigger_zone: {"min_x": 0.0, "max_x": 10.0, "min_y": 0.0, "max_y": 5.0}
+    
+#/robot/fix:
+#  msg_type: sensor_msgs/msg/NavSatFix
+#  trigger_info:
+#    type: ZoneTriggerWithNavSatFix
+#    persistance_duration: 5.0
+
+/robot/fix:
+  msg_type: sensor_msgs/msg/NavSatFix
+  triggers:
+    - type: NavSatInvalidFixTrigger
+    - persistance_duration: 20.0
