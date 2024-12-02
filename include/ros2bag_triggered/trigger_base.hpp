@@ -10,13 +10,13 @@ template<typename T>
 class TriggerBase
 {
 public:
-    using MessageType = T;
 
     explicit TriggerBase(double persistance_duration, const rclcpp::Clock::SharedPtr clock)
     : persistance_duration_(rclcpp::Duration::from_seconds(persistance_duration)),
       clock_(clock) 
     {}
 
+    TriggerBase() = delete;
     virtual ~TriggerBase() = default;
     virtual bool isTriggered(const typename T::SharedPtr msg) = 0;
 
