@@ -22,10 +22,11 @@ public:
         double z_max{0};
     };
 
-    ZoneTriggerWithPoseStamped(uint64_t persistance_duration, const TriggerZone& trigger_zone, const rclcpp::Clock::SharedPtr clock) 
-    : TriggerBase(persistance_duration, clock),
+    ZoneTriggerWithPoseStamped(uint64_t persistance_duration, const rclcpp::Clock::SharedPtr clock, bool use_msg_stamp, const TriggerZone& trigger_zone) 
+    : TriggerBase(persistance_duration, clock, use_msg_stamp),
       trigger_zone_(trigger_zone) {}
 
+    ZoneTriggerWithPoseStamped() = delete;
     ~ZoneTriggerWithPoseStamped() override = default;
 
     bool isTriggered(const geometry_msgs::msg::PoseStamped::SharedPtr msg) override;

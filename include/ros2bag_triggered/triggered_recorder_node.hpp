@@ -5,7 +5,6 @@
 #include <rosbag2_cpp/writer.hpp>
 #include <rosbag2_storage/topic_metadata.hpp>
 #include <rosbag2_cpp/converter_options.hpp>
-#include <std_msgs/msg/string.hpp>
 #include <ros2bag_triggered/trigger_base.hpp>
 #include <memory>
 #include <variant>
@@ -37,13 +36,18 @@ private:
     
     
     void initialize();
-    void add_to_subscriptions(const YAML::Node& topics_cfg);
+    void reset_writer();
+    void create_subscriptions(const YAML::Node& topics_cfg);
+    void topic_callback(std::shared_ptr<rclcpp::SerializedMessage> msg, 
+                        const std::string& topic_name, 
+                        const std::string& topic_type,
+                        TriggerVariant& trigger);
 
     template<std::size_t... Is>
     void initialize_triggers(std::index_sequence<Is...>);
 
     rosbag2_cpp::Writer writer_;
-    std::vector<rclcpp::GenericSubscription::SharedPtr> subcriptions_;
+    std::vector<rclcpp::GenericSubscription::SharedPtr> subscriptions_;
     std::unordered_map<std::string, TriggerVariant> triggers_;
     BagConfig bag_config_;
     

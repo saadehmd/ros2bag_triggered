@@ -10,8 +10,10 @@ namespace ros2bag_triggered::examples
 class NavSatInvalidFixTrigger : public TriggerBase<sensor_msgs::msg::NavSatFix>
 {
 public:
-    NavSatInvalidFixTrigger(uint64_t persistance_duration, const rclcpp::Clock::SharedPtr clock)
-        : TriggerBase(persistance_duration, clock) {}
+    NavSatInvalidFixTrigger(uint64_t persistance_duration, const rclcpp::Clock::SharedPtr clock, bool use_msg_stamp)
+        : TriggerBase(persistance_duration, clock, use_msg_stamp) {}
+    
+    NavSatInvalidFixTrigger() = delete;
     ~NavSatInvalidFixTrigger() override = default;
     
     bool isTriggered(const sensor_msgs::msg::NavSatFix::SharedPtr msg) override;

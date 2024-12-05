@@ -21,10 +21,11 @@ public:
         double altitude_max{0};
     };
 
-    ZoneTriggerWithNavSatFix(uint64_t persistance_duration, const rclcpp::Clock::SharedPtr clock, const TriggerZone& trigger_zone) 
-    : TriggerBase(persistance_duration, clock),
+    ZoneTriggerWithNavSatFix(uint64_t persistance_duration, const rclcpp::Clock::SharedPtr clock, bool use_msg_stamp, const TriggerZone& trigger_zone) 
+    : TriggerBase(persistance_duration, clock, use_msg_stamp),
       trigger_zone_(trigger_zone) {}
 
+    ZoneTriggerWithNavSatFix() = delete;
     ~ZoneTriggerWithNavSatFix() override = default;
     
     bool isTriggered(const sensor_msgs::msg::NavSatFix::SharedPtr msg) override;
