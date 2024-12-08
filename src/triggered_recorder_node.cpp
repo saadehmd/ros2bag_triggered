@@ -30,9 +30,10 @@ void TriggeredRecorderNode<TriggerVariant>::initialize()
         throw YAML::BadFile();
     }
 
+
     initialize_triggers(std::make_index_sequence<std::variant_size<TriggerVariant>::value>{});
     reset_writer();
-    create_subscriptions(topics_config);
+    create_subscriptions();
 
 }
 
@@ -45,12 +46,23 @@ void TriggeredRecorderNode<TriggerVariant>::reset_writer()
     storage_options.max_bagfile_size = bag_config_.bag_size;
     storage_options.storage_id = "sqlite3";
     writer_.open(storage_options);
+
+    //Create all topics immediately after creating the new writer
+    for (const auto& topic : topics_config_)
+    {
+        auto topic_name = topic.first.as<std::string>();
+        auto topic_cfg  = topic.second;
+        auto msg_type = topic_cfg["msg_type"].as<std::string>();
+        std::string serialization_format = "cdr";
+        auto metadata = rosbag2_storage::TopicMetadata(topic_name, msg_type, serialization_format);
+        writer_.create_topic(metadata);
+    }
 }
 
 template<typename TriggerVariant>
-void TriggeredRecorderNode<TriggerVariant>::create_subscriptions(const YAML::Node& topics_cfg)
+void TriggeredRecorderNode<TriggerVariant>::create_subscriptions()
 {
-    for (const auto& topic : topics_cfg)
+    for (const auto& topic : topics_config_)
     {
         auto topic_name = topic.first.as<std::string>();
         auto topic_cfg  = topic.second;
@@ -84,7 +96,7 @@ void TriggeredRecorderNode<TriggerVariant>::topic_callback(std::shared_ptr<rclcp
     rclcpp::Time time_stamp = this->now();
     writer_.write(*msg, topic_name, topic_type, time_stamp);
 
-    if (trigger.index() > 0) 
+    if (trigger.index() > 0) // if initialized otherwise the topic has no triggers on it.
     {
         bool negative_edge = trigger.onSurge(msg);
     }

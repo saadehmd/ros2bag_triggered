@@ -37,7 +37,7 @@ private:
     
     void initialize();
     void reset_writer();
-    void create_subscriptions(const YAML::Node& topics_cfg);
+    void create_subscriptions();
     void topic_callback(std::shared_ptr<rclcpp::SerializedMessage> msg, 
                         const std::string& topic_name, 
                         const std::string& topic_type,
@@ -49,6 +49,7 @@ private:
     rosbag2_cpp::Writer writer_;
     std::vector<rclcpp::GenericSubscription::SharedPtr> subscriptions_;
     std::unordered_map<std::string, TriggerVariant> triggers_;
+    YAML::Node topics_config_; //@TODO: Get rid of YAML dependency for initialization.
     BagConfig bag_config_;
     
 };
