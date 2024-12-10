@@ -20,23 +20,27 @@ template<typename TriggerVariant>
 class TriggeredRecorderNode : public rclcpp::Node
 {
 public:
-    TriggeredRecorderNode(std::string&& node_name, 
-                          const rclcpp::NodeOptions& node_options);
+    TriggeredRecorderNode(std::string&& node_name = "triggered_recorder_node", 
+                          const rclcpp::NodeOptions& node_options = rclcpp::NodeOptions());
     ~TriggeredRecorderNode();
 
 
 private:
 
-    struct BagConfig
+    struct Config
     {
-        std::string bag_path;
+        std::string bag_root_dir;
         std::string topic_config_path;
-        uint64_t bag_size;
+        uint64_t max_bagfile_duration;
+        uint64_t max_bagfile_size;
+        uint64_t max_cache_size;
+        double trigger_buffer_duration;
     };
     
-    
-    void initialize();
+    void initialize(const std::optional<Config>& config);
+    void initialize_config(const std::optional<Config>& config);
     void reset_writer();
+    void crop_the_bag();
     void create_subscriptions();
     void topic_callback(std::shared_ptr<rclcpp::SerializedMessage> msg, 
                         const std::string& topic_name, 
@@ -50,8 +54,10 @@ private:
     std::vector<rclcpp::GenericSubscription::SharedPtr> subscriptions_;
     std::unordered_map<std::string, TriggerVariant> triggers_;
     YAML::Node topics_config_; //@TODO: Get rid of YAML dependency for initialization.
-    BagConfig bag_config_;
-    
+    Config config_;
+    rclcpp::TimerBase::SharedPtr trigger_buffer_timer_;
+    rosbag2_storage::StorageOptions last_bag_options_;
+    std::pair<int64_t, int64_t> crop_points_{{-1, -1}};
 };
 
 } // namespace ros2bag_triggered

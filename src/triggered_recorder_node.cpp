@@ -1,4 +1,8 @@
 #include <ros2bag_triggered/triggered_recorder_node.hpp>
+#include <rosbag2_transport/bag_rewrite.hpp>
+#include <rosbag2_transport/record_options.hpp>
+#include "rosbag2_storage/ros_helper.hpp"
+#include <rosbag2_storage/default_storage_id.hpp>
 
 using namespace ros2bag_triggered;
 using namespace rclcpp;
@@ -12,17 +16,14 @@ TriggeredRecorderNode<TriggerVariant>::TriggeredRecorderNode(std::string&& node_
 }
 
 template<typename TriggerVariant>
-void TriggeredRecorderNode<TriggerVariant>::initialize()
+void TriggeredRecorderNode<TriggerVariant>::initialize(const std::optional<Config>& config)
 {
-    auto prefix_path = ament_index_cpp::get_package_prefix("ros2bag_triggered");
-    bag_config_.bag_path = declare_parameter("bag_path", prefix_path + "/bags/");
-    bag_config_.topic_config_path= declare_parameter("topic_config_path", prefix_path + "config/topic_config.yaml");
-    bag_config_.bag_size = declare_parameter("bag_size", 10e10);
-
+    initialize_config(config);
+    trigger_buffer_timer_ = create_wall_timer(std::chrono::seconds(config_.trigger_buffer_duration), [this](){crop_the_bag();});
     YAML::Node topics_config;
     try
     {
-        topics_config = YAML::LoadFile(bag_config_.topic_config_path+"/topic_config.yaml");
+        topics_config = YAML::LoadFile(config_.topic_config_path+"/topic_config.yaml");
     }
     catch(YAML::BadFile&)
     {
@@ -30,22 +31,44 @@ void TriggeredRecorderNode<TriggerVariant>::initialize()
         throw YAML::BadFile();
     }
 
-
     initialize_triggers(std::make_index_sequence<std::variant_size<TriggerVariant>::value>{});
     reset_writer();
+
+    // This is an expensive operation, so we do it only once in the beginning.
     create_subscriptions();
 
 }
+
+template<typename TriggerVariant>
+void TriggeredRecorderNode<TriggerVariant>::initialize_config(const std::optional<Config>& config)
+{
+    auto prefix_path = ament_index_cpp::get_package_prefix("ros2bag_triggered");
+    
+    if ( config.has_value() )
+    {
+        config_ = config.value();
+        return;
+    }
+
+    config_.bag_root_dir = declare_parameter("bag_path", prefix_path + "/ros2bag_triggered/");
+    config_.topic_config_path = declare_parameter("topic_config_path", prefix_path + "config/topic_config.yaml");
+    config_.max_bagfile_duration = declare_parameter("max_bagfile_duration", 300);
+    config_.max_bagfile_size = declare_parameter("max_bagfile_size", 10e10);
+    config_.max_cache_size = declare_parameter("max_cache_size", 0);
+    config_.trigger_buffer_duration = declare_parameter("trigger_buffer_duration", 600);
+}   
 
 template<typename TriggerVariant>
 void TriggeredRecorderNode<TriggerVariant>::reset_writer()
 {
     rosbag2_storage::StorageOptions storage_options;
     auto stamp = get_clock()->now().nanoseconds();
-    storage_options.uri = bag_config_.bag_path + '/' + std::to_string(stamp);
-    storage_options.max_bagfile_size = bag_config_.bag_size;
-    storage_options.storage_id = "sqlite3";
-    writer_.open(storage_options);
+    last_bag_options_.uri = config_.bag_root_dir + '/' + std::to_string(stamp);
+    last_bag_options_.max_bagfile_size = config_.max_bagfile_size;
+    last_bag_options_.max_bagfile_duration = config_.max_bagfile_duration;
+    last_bag_options_.max_cache_size = config_.max_cache_size;
+    last_bag_options_.storage_id = rosbag2_storage::get_default_storage_id();
+    writer_.open(last_bag_options_);
 
     //Create all topics immediately after creating the new writer
     for (const auto& topic : topics_config_)
@@ -57,6 +80,29 @@ void TriggeredRecorderNode<TriggerVariant>::reset_writer()
         auto metadata = rosbag2_storage::TopicMetadata(topic_name, msg_type, serialization_format);
         writer_.create_topic(metadata);
     }
+}
+
+template<typename TriggerVariant>
+void TriggeredRecorderNode<TriggerVariant>::crop_the_bag()
+{
+    if(crop_points_.first < 0)
+    {
+        RCLCPP_WARN(get_logger(), "No triggers were detected on the bag: %s", last_bag_options_.uri.c_str());
+        return;
+    }
+
+    /* Write the bag metadata and close before re-writing. */
+    writer_.close();
+
+    /* Crop is simply a rewrite with new start/end timestamp information.
+       Only supported with ROS2 >= Jazzy  */
+    rosbag2_storage::StorageOptions rewrite_bag_options = last_bag_options_;
+    rewrite_bag_options.uri = last_bag_options_.uri + "_triggered";
+    rewrite_bag_options.start_time_ns = crop_points_.first;
+    rewrite_bag_options.end_time_ns = crop_points_.second;
+    rosbag2_transport::RecordOptions record_options;
+    record_options.all_topics = true;
+    rosbag2_transport::bag_rewrite({last_bag_options_}, {std::make_pair(rewrite_bag_options, record_options)});
 }
 
 template<typename TriggerVariant>
@@ -99,6 +145,12 @@ void TriggeredRecorderNode<TriggerVariant>::topic_callback(std::shared_ptr<rclcp
     if (trigger.index() > 0) // if initialized otherwise the topic has no triggers on it.
     {
         bool negative_edge = trigger.onSurge(msg);
+        if (negative_edge)
+        {
+            auto last_trigger = trigger.getAllTriggers().back();
+            crop_points_.first = crop_points_.first > 0  ? std::min(crop_points_.first, last_trigger.first) : last_trigger.first;
+            crop_points_.second = std::max(crop_points_.second, last_trigger.second);
+        }
     }
   
 }

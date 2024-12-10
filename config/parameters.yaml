@@ -1,0 +1,11 @@
+/triggered_recorder_node:
+  ros__parameters:
+    bag_root_dir: "./ros2bag_triggered"    # The directory where the bag files will be stored. The bag name would be infered as unix timestamp. Change this root dir accordingly.
+    max_bagfile_size: 1000000000           # The maximum size a bagfile can be, in bytes, before it is split.
+                                           # A value of 0 indicates that bagfile splitting will not be used.
+    max_bagfile_duration: 300              # The maximum duration a bagfile can be, in seconds, before it is split.
+                                           # A value of 0 indicates that bagfile splitting will not be used.
+    max_cache_size: 0                      # Bytes. A value of 0 disables caching and every write happens directly to disk.
+    trigger_buffer_interval: 600.0         # The interval in seconds for which the triggers are buffered before being checked.
+                                           # Once this interval is over, the triggers are checked and reset, the bagfile along with a trigger report 
+                                           # is saved if any trigger is active otherwise removed and the a new bagfile is opened for writing.

@@ -9,6 +9,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rosbag2_cpp REQUIRED)
 find_package(rosbag2_transport REQUIRED)
+find_package(rosbag2_storage REQUIRED)
 find_package(rosbag2 REQUIRED)
 find_package(rosgraph_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
@@ -31,6 +32,7 @@ set(ament_cmake_dependencies
   rclcpp
   rosbag2_cpp
   rosbag2_transport
+  rosbag2_storage
   rosbag2
   rosgraph_msgs
   geometry_msgs

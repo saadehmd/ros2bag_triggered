@@ -45,7 +45,7 @@ public:
         }
         else if (trigger_duration >= persistance_duration_.nanoseconds() + std::numeric_limits<uint64_t>::epsilon())
         {
-            all_trigger_durations_.push_back(last_stamp_ - first_stamp_);
+            all_triggers_.push_back(std::make_pair(first_stamp_, last_stamp_));
             negative_edge = true;
             first_stamp_ = 0;
             last_stamp_ = 0;
@@ -57,12 +57,17 @@ public:
         }
         return negative_edge;
     }
+
+    std::vector<std::pair<uint64_t, uint64_t>> getAllTriggers() const
+    {
+        return all_triggers_;
+    }
     
 protected:
     uint64_t first_stamp_{0};
     uint64_t last_stamp_{0};
     bool use_msg_stamp_{false};
-    std::vector<uint64_t> all_trigger_durations_{};
+    std::vector<std::pair<uint64_t, uint64_t>> all_triggers_{};
     rclcpp::Duration persistance_duration_{0};
     rclcpp::Clock::SharedPtr clock_{nullptr};
 };
