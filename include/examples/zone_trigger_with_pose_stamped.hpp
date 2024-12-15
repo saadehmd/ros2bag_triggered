@@ -29,7 +29,7 @@ public:
     ZoneTriggerWithPoseStamped() = delete;
     ~ZoneTriggerWithPoseStamped() override = default;
 
-    bool isTriggered(const geometry_msgs::msg::PoseStamped::SharedPtr msg) override;
+    bool isTriggered(const geometry_msgs::msg::PoseStamped::SharedPtr msg) const override;
 
     static const std::string name;
 

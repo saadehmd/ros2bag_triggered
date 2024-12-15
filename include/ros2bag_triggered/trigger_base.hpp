@@ -19,7 +19,7 @@ public:
 
     TriggerBase() = delete;
     virtual ~TriggerBase() = default;
-    virtual bool isTriggered(const typename T::SharedPtr msg) = 0;
+    virtual bool isTriggered(const typename T::SharedPtr msg) const = 0;
 
     bool onSurge(const typename T::SharedPtr msg)
     {
@@ -28,11 +28,11 @@ public:
             throw std::runtime_error("No stamps on the msgs and no clock provided");
         }
 
-        auto stamp = use_msg_stamp_ ? rclcpp::Time(msg->header.stamp) : clock_->now();
-        auto trigger_duration = last_stamp_ - first_stamp_;
+        auto stamp = use_msg_stamp_ && msg ? rclcpp::Time(msg->header.stamp) : clock_->now();
+        auto trigger_duration = stamp.nanoseconds() - first_stamp_;
         bool negative_edge = false;
 
-        if (isTriggered(msg))
+        if (msg && isTriggered(msg))
         {
             if (first_stamp_ == 0)
             {

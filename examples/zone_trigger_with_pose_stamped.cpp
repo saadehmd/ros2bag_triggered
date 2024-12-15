@@ -2,7 +2,7 @@
 
 using namespace ros2bag_triggered::examples;
 
-bool ZoneTriggerWithPoseStamped::isTriggered(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
+bool ZoneTriggerWithPoseStamped::isTriggered(const geometry_msgs::msg::PoseStamped::SharedPtr msg) const
 {
     return msg->pose.position.x >= trigger_zone_.x_min && msg->pose.position.x <= trigger_zone_.x_max &&
            msg->pose.position.y >= trigger_zone_.y_min && msg->pose.position.y <= trigger_zone_.y_max &&

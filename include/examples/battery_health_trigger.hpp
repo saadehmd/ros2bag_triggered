@@ -16,7 +16,7 @@ public:
     BatteryHealthTrigger() = delete;
     ~BatteryHealthTrigger() override = default;
     
-    bool isTriggered(const sensor_msgs::msg::BatteryState::SharedPtr msg) override;
+    bool isTriggered(const sensor_msgs::msg::BatteryState::SharedPtr msg) const override;
 
     static const std::string name;
     

@@ -16,7 +16,7 @@ public:
     NavSatInvalidFixTrigger() = delete;
     ~NavSatInvalidFixTrigger() override = default;
     
-    bool isTriggered(const sensor_msgs::msg::NavSatFix::SharedPtr msg) override;
+    bool isTriggered(const sensor_msgs::msg::NavSatFix::SharedPtr msg) const override;
 
     static const std::string name;
 };

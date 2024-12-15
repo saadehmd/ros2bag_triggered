@@ -46,6 +46,8 @@ private:
                         const std::string& topic_name, 
                         const std::string& topic_type,
                         TriggerVariant& trigger);
+    void crop_points_from_triggers(const std::variant<TriggerVariant>& trigger,
+                                   const std::shared_ptr<rclcpp::SerializedMessage>& msg);
 
     template<std::size_t... Is>
     void initialize_triggers(std::index_sequence<Is...>);
