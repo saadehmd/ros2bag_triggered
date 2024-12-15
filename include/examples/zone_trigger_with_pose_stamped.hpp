@@ -7,8 +7,6 @@
 namespace ros2bag_triggered::examples
 {
 
-
-
 class ZoneTriggerWithPoseStamped : public TriggerBase<geometry_msgs::msg::PoseStamped>
 {
 public:
@@ -26,6 +24,11 @@ public:
     : TriggerBase(persistance_duration, clock, use_msg_stamp),
       trigger_zone_(trigger_zone) {}
 
+    ZoneTriggerWithPoseStamped(const YAML::Node& node)
+    {
+        fromYaml(node);
+    }
+
     ZoneTriggerWithPoseStamped() = delete;
     ~ZoneTriggerWithPoseStamped() override = default;
 
@@ -33,10 +36,14 @@ public:
 
     static const std::string name;
 
-private:
+protected:
+    void fromYaml(const YAML::Node& node) override;
     TriggerZone trigger_zone_;
 };
 const std::string ZoneTriggerWithPoseStamped::name = "ZoneTriggerWithPoseStamped";
+
+    
+
 } // namespace ros2bag_triggered::examples
 
 #endif // ZONE_TRIGGER_WITH_POSE_STAMPED_HPP

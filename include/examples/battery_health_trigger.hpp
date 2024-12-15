@@ -12,6 +12,11 @@ class BatteryHealthTrigger : public TriggerBase<sensor_msgs::msg::BatteryState>
 public:
     explicit BatteryHealthTrigger(uint64_t persistance_duration, const rclcpp::Clock::SharedPtr clock, bool use_msg_stamp)
     : TriggerBase(persistance_duration, clock, use_msg_stamp) {}
+
+    BatteryHealthTrigger(const YAML::Node& node)
+    {
+        fromYaml(node);
+    }
     
     BatteryHealthTrigger() = delete;
     ~BatteryHealthTrigger() override = default;
@@ -19,7 +24,9 @@ public:
     bool isTriggered(const sensor_msgs::msg::BatteryState::SharedPtr msg) const override;
 
     static const std::string name;
-    
+
+protected:
+    void fromYaml(const YAML::Node& node) override;
 };
 const std::string BatteryHealthTrigger::name = "BatteryHealthTrigger";
 }  // namespace ros2bag_triggered::examples

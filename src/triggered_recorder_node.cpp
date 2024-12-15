@@ -19,7 +19,7 @@ template<typename TriggerVariant>
 void TriggeredRecorderNode<TriggerVariant>::initialize(const std::optional<Config>& config)
 {
     initialize_config(config);
-    trigger_buffer_timer_ = create_wall_timer(std::chrono::seconds(config_.trigger_buffer_duration), [this](){crop_the_bag();});
+    trigger_buffer_timer_ = create_wall_timer(std::chrono::seconds(config_.trigger_buffer_duration), [this](){crop_and_reset();});
     YAML::Node topics_config;
     try
     {
@@ -44,7 +44,7 @@ void TriggeredRecorderNode<TriggerVariant>::initialize_config(const std::optiona
 {
     auto prefix_path = ament_index_cpp::get_package_prefix("ros2bag_triggered");
     
-    if ( config.has_value() )
+    if (config.has_value())
     {
         config_ = config.value();
         return;
@@ -83,7 +83,7 @@ void TriggeredRecorderNode<TriggerVariant>::reset_writer()
 }
 
 template<typename TriggerVariant>
-void TriggeredRecorderNode<TriggerVariant>::crop_the_bag()
+void TriggeredRecorderNode<TriggerVariant>::crop_and_reset()
 {
     if(crop_points_.first < 0)
     {
@@ -94,6 +94,18 @@ void TriggeredRecorderNode<TriggerVariant>::crop_the_bag()
     /* Write the bag metadata and close before re-writing. */
     writer_.close();
 
+    /* Send an early termination surge to all triggers to
+       check any of them are activated and can provide
+       crop points for the bag */
+    for (auto& trigger : triggers_)
+    {
+        if(trigger.index() > 0)
+        {
+            crop_points_from_triggers(trigger, /*msg=*/nullptr);
+            trigger.reset();
+        }
+    }
+
     /* Crop is simply a rewrite with new start/end timestamp information.
        Only supported with ROS2 >= Jazzy  */
     rosbag2_storage::StorageOptions rewrite_bag_options = last_bag_options_;
@@ -103,6 +115,9 @@ void TriggeredRecorderNode<TriggerVariant>::crop_the_bag()
     rosbag2_transport::RecordOptions record_options;
     record_options.all_topics = true;
     rosbag2_transport::bag_rewrite({last_bag_options_}, {std::make_pair(rewrite_bag_options, record_options)});
+
+    reset_writer();
+    
 }
 
 template<typename TriggerVariant>
@@ -117,12 +132,15 @@ void TriggeredRecorderNode<TriggerVariant>::create_subscriptions()
         TriggerVariant trigger_initialized; // should be std::monostate by default and the other types should not be default constructible
         if(topic_cfg["triggers"].IsDefined())
         {   
-            for (const auto& trigger_info : topic_cfg["triggers"])
+            for (const YAML::Node& trigger_info : topic_cfg["triggers"])
             {
                 auto trigger_type = trigger_info["type"].as<std::string>();
-                auto persist_duration = trigger_info["persist_duration"].as<double>();
                 auto& trigger = triggers_[trigger_type];
-                trigger_initialized = std::get<decltype(triggers_[trigger])>(trigger).emplace(persist_duration, get_clock);
+                trigger_initialized = std::get<decltype(triggers_[trigger])>(trigger).emplace(trigger_info);
+                if (!trigger_initialized.isUsingMsgStamps())
+                {
+                    trigger_initialized.set_clock(get_clock());
+                }
             }
         }
         std::function<void(std::shared_ptr<rclcpp::SerializedMessage> msg)> callback = 
@@ -134,7 +152,7 @@ void TriggeredRecorderNode<TriggerVariant>::create_subscriptions()
 }
 
 template<typename TriggerVariant>
-void TriggeredRecorderNode<TriggerVariant>::topic_callback(std::shared_ptr<rclcpp::SerializedMessage> msg, 
+void TriggeredRecorderNode<TriggerVariant>::topic_callback(const std::shared_ptr<rclcpp::SerializedMessage> msg, 
                                                            const std::string& topic_name, 
                                                            const std::string& topic_type,
                                                            TriggerVariant& trigger)
@@ -142,17 +160,24 @@ void TriggeredRecorderNode<TriggerVariant>::topic_callback(std::shared_ptr<rclcp
     rclcpp::Time time_stamp = this->now();
     writer_.write(*msg, topic_name, topic_type, time_stamp);
 
-    if (trigger.index() > 0) // if initialized otherwise the topic has no triggers on it.
+    if (trigger.index() > 0) // if initialized, otherwise the topic has no triggers on it.
     {
-        bool negative_edge = trigger.onSurge(msg);
-        if (negative_edge)
-        {
-            auto last_trigger = trigger.getAllTriggers().back();
-            crop_points_.first = crop_points_.first > 0  ? std::min(crop_points_.first, last_trigger.first) : last_trigger.first;
-            crop_points_.second = std::max(crop_points_.second, last_trigger.second);
-        }
+        crop_points_from_triggers(trigger, msg);
     }
   
+}
+
+template<typename TriggerVariant>
+void TriggeredRecorderNode<TriggerVariant>::crop_points_from_triggers(const std::variant<TriggerVariant>& trigger,
+                                                                      const std::shared_ptr<rclcpp::SerializedMessage>& msg)
+{
+    bool negative_edge = trigger.onSurge(msg);
+    if (negative_edge)
+    {
+        auto last_trigger = trigger.getAllTriggers().back();
+        crop_points_.first = crop_points_.first > 0  ? std::min(crop_points_.first, last_trigger.first) : last_trigger.first;
+        crop_points_.second = std::max(crop_points_.second, last_trigger.second);
+    }
 }
 
 template<typename TriggerVariant>

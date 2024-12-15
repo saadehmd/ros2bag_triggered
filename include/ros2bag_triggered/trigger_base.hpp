@@ -3,6 +3,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <limits>
+#include <yaml-cpp/yaml.h>
 
 namespace ros2bag_triggered {
 
@@ -17,12 +18,18 @@ public:
       clock_(clock) 
     {}
 
-    TriggerBase() = delete;
+    TriggerBase() = default;
     virtual ~TriggerBase() = default;
     virtual bool isTriggered(const typename T::SharedPtr msg) const = 0;
 
     bool onSurge(const typename T::SharedPtr msg)
-    {
+    {   
+
+        if (persistance_duration_.nanoseconds() == 0)
+        {
+            return false;
+        }
+
         if (!use_msg_stamp_ && !clock_)
         {
             throw std::runtime_error("No stamps on the msgs and no clock provided");
@@ -43,7 +50,7 @@ public:
                 last_stamp_ = stamp.nanoseconds();
             }
         }
-        else if (trigger_duration >= persistance_duration_.nanoseconds() + std::numeric_limits<uint64_t>::epsilon())
+        else if (trigger_duration >= persistance_duration_.nanoseconds())
         {
             all_triggers_.push_back(std::make_pair(first_stamp_, last_stamp_));
             negative_edge = true;
@@ -69,13 +76,28 @@ public:
         last_stamp_ = 0;
         all_triggers_.clear();
     }
+
+    void setClock(const rclcpp::Clock::SharedPtr& clock)
+    {
+        clock_ = clock ; 
+    }
+
+    bool isUsingMsgStamps() 
+    {
+        return use_msg_stamp_;
+    }
     
 protected:
+
+    // The interface dictates that derived classes should implement this method to load the trigger config from a YAML node.
+    // The method is protected and only accessible from the dedicated YAML-based constructor, to protect the encapsulation.
+    virtual void fromYaml(const YAML::Node& node) = 0;
+
     uint64_t first_stamp_{0};
     uint64_t last_stamp_{0};
     bool use_msg_stamp_{false};
     std::vector<std::pair<uint64_t, uint64_t>> all_triggers_{};
-    rclcpp::Duration persistance_duration_{0};
+    rclcpp::Duration persistance_duration_{rclcpp::Duration::from_seconds(0)};
     rclcpp::Clock::SharedPtr clock_{nullptr};
 };
 
