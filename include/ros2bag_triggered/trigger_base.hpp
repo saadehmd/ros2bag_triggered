@@ -62,6 +62,13 @@ public:
     {
         return all_triggers_;
     }
+
+    void reset()
+    {
+        first_stamp_ = 0;
+        last_stamp_ = 0;
+        all_triggers_.clear();
+    }
     
 protected:
     uint64_t first_stamp_{0};

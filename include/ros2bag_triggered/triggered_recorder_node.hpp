@@ -40,7 +40,7 @@ private:
     void initialize(const std::optional<Config>& config);
     void initialize_config(const std::optional<Config>& config);
     void reset_writer();
-    void crop_the_bag();
+    void crop_and_reset();
     void create_subscriptions();
     void topic_callback(std::shared_ptr<rclcpp::SerializedMessage> msg, 
                         const std::string& topic_name, 
