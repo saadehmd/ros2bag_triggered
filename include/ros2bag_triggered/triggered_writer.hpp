@@ -15,7 +15,7 @@ public:
     ~TriggeredWriter() = default;
 
     /**
-     * @brief Set the cropping range time range of the bag file.
+     * @brief Set the cropping time range of the bag file.
      * @param start_time The start time of the crop range in seconds.
      * @param end_time The end time of the crop range in seconds.
      */

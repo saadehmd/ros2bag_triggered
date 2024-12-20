@@ -1,7 +1,6 @@
 #include <ros2bag_triggered/triggered_recorder_node.hpp>
-#include <rosbag2_transport/bag_rewrite.hpp>
-#include <rosbag2_transport/record_options.hpp>
-#include "rosbag2_storage/ros_helper.hpp"
+//#include <rosbag2_transport/bag_rewrite.hpp>
+//#include <rosbag2_transport/record_options.hpp>
 #include <rosbag2_storage/default_storage_id.hpp>
 
 using namespace ros2bag_triggered;
@@ -85,12 +84,7 @@ void TriggeredRecorderNode<TriggerVariant>::reset_writer()
 
 template<typename TriggerVariant>
 void TriggeredRecorderNode<TriggerVariant>::crop_and_reset()
-{
-    if(crop_points_.first < 0 || crop_points_.second < 0)
-    {
-        RCLCPP_WARN(get_logger(), "No triggers were detected on the bag: %s", last_bag_options_.uri.c_str());
-    }
-    
+{   
     /* Send an early termination surge to all triggers to
        check if any of them are activated and can update
        crop points for the bag */
@@ -98,9 +92,14 @@ void TriggeredRecorderNode<TriggerVariant>::crop_and_reset()
     {
         if(trigger.index() > 0)
         {
-            crop_points_from_triggers(trigger, /*msg=*/nullptr);
+            crop_points_from_triggers(trigger, /*msg=*/nullptr); // nullptr acts as an abort signal to the triggers.
             trigger.reset();
         }
+    }
+
+    if(crop_points_.first < 0 || crop_points_.second < 0)
+    {
+        RCLCPP_WARN(get_logger(), "No triggers were detected on the bag: %s", last_bag_options_.uri.c_str());
     }
 
     /* Change the start and end times of the bag before closing, to impliciltly perform cropping of the bag. 
@@ -197,5 +196,6 @@ template<typename TriggerVariant>
 template<std::size_t... Is>
 void  TriggeredRecorderNode<TriggerVariant>::initialize_triggers(std::index_sequence<Is...>)
 {
+    // ToDo: Implement type-check to make sure user only creates a variants of TriggerBase Derived classes.
     ((triggers_[std::variant_alternative_t<Is, TriggerVariant>::name] = std::variant_alternative_t<Is, TriggerVariant>{}), ...);
 }
