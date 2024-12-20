@@ -25,7 +25,7 @@ public:
     bool onSurge(const typename T::SharedPtr msg)
     {   
 
-        if (persistance_duration_.nanoseconds() == 0)
+        if (!isEnabled())
         {
             return false;
         }
@@ -85,6 +85,11 @@ public:
     bool isUsingMsgStamps() 
     {
         return use_msg_stamp_;
+    }
+
+    bool isEnabled()
+    {
+        return persistance_duration_.nanoseconds() > 0;
     }
     
 protected:

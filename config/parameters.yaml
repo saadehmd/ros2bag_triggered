@@ -9,3 +9,4 @@
     trigger_buffer_interval: 600.0         # The interval in seconds for which the triggers are buffered before being checked.
                                            # Once this interval is over, the triggers are checked and reset, the bagfile along with a trigger report 
                                            # is saved if any trigger is active otherwise removed and the a new bagfile is opened for writing.
+    crop_gap: 10.0                          # The gap(padding) in seconds to add before and after the crop-points of the bag.
