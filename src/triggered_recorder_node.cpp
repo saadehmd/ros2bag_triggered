@@ -56,6 +56,7 @@ void TriggeredRecorderNode<TriggerVariant>::initialize_config(const std::optiona
     config_.max_bagfile_size = declare_parameter("max_bagfile_size", 10e10);
     config_.max_cache_size = declare_parameter("max_cache_size", 0);
     config_.trigger_buffer_duration = declare_parameter("trigger_buffer_duration", 600);
+    config_.crop_gap = declare_parameter("crop_gap", 0.0);
 }   
 
 template<typename TriggerVariant>
@@ -85,17 +86,13 @@ void TriggeredRecorderNode<TriggerVariant>::reset_writer()
 template<typename TriggerVariant>
 void TriggeredRecorderNode<TriggerVariant>::crop_and_reset()
 {
-    if(crop_points_.first < 0)
+    if(crop_points_.first < 0 || crop_points_.second < 0)
     {
         RCLCPP_WARN(get_logger(), "No triggers were detected on the bag: %s", last_bag_options_.uri.c_str());
-        return;
     }
-
-    /* Write the bag metadata and close before re-writing. */
-    writer_.close();
-
+    
     /* Send an early termination surge to all triggers to
-       check any of them are activated and can provide
+       check if any of them are activated and can update
        crop points for the bag */
     for (auto& trigger : triggers_)
     {
@@ -106,16 +103,30 @@ void TriggeredRecorderNode<TriggerVariant>::crop_and_reset()
         }
     }
 
-    /* Crop is simply a rewrite with new start/end timestamp information.
+    /* Change the start and end times of the bag before closing, to impliciltly perform cropping of the bag. 
        Only supported with ROS2 >= Jazzy  */
+    auto& base_writer = *(writer_.writer_impl_);
+    auto& triggered_writer = static_cast<ros2bag_triggered::TriggeredWriter&>(base_writer);
+
+    /** If there were no triggers, one or both crop points are negative and hence the writer discards all 
+     *  the recorded messages during writer.close() call. */
+    triggered_writer.set_crop_points(crop_points_.first, crop_points_.second);
+
+    /** Closing checks the time-range of messages before writing and discards if messages are out of this range.*/
+    writer_.close();
+
+    // @todo: Remove the following after appropriate testing of above method.
+    /* Crop is simply a rewrite with new start/end timestamp information.
+       Only supported with ROS2 >= Jazzy  
     rosbag2_storage::StorageOptions rewrite_bag_options = last_bag_options_;
     rewrite_bag_options.uri = last_bag_options_.uri + "_triggered";
-    rewrite_bag_options.start_time_ns = crop_points_.first;
-    rewrite_bag_options.end_time_ns = crop_points_.second;
+    rewrite_bag_options.start_time_ns = std::max(crop_points_.first, bag_start_time);
+    rewrite_bag_options.end_time_ns = std::min(crop_points_.second, bag_end_time);
     rosbag2_transport::RecordOptions record_options;
     record_options.all_topics = true;
-    rosbag2_transport::bag_rewrite({last_bag_options_}, {std::make_pair(rewrite_bag_options, record_options)});
+    rosbag2_transport::bag_rewrite({last_bag_options_}, {std::make_pair(rewrite_bag_options, record_options)});**/
 
+    //TODO: Test whether the 'create_topic()' calls are necessary after the bag is closed and reopened with new storage options.
     reset_writer();
     
 }
@@ -175,8 +186,10 @@ void TriggeredRecorderNode<TriggerVariant>::crop_points_from_triggers(const std:
     if (negative_edge)
     {
         auto last_trigger = trigger.getAllTriggers().back();
-        crop_points_.first = crop_points_.first > 0  ? std::min(crop_points_.first, last_trigger.first) : last_trigger.first;
-        crop_points_.second = std::max(crop_points_.second, last_trigger.second);
+        auto start_point = last_trigger.first - config_.crop_gap;
+        auto stop_point = last_trigger.second + config_.crop_gap;
+        crop_points_.first = crop_points_.first >= 0  ? std::min(crop_points_.first, start_point) : last_trigger.first;
+        crop_points_.second = std::max(crop_points_.second, last_trigger.second + config_.crop_gap);
     }
 }
 

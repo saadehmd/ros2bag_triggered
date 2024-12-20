@@ -3,6 +3,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <rosbag2_cpp/writer.hpp>
+#include <rosbag2_cpp/writers/sequential_writer.hpp>
 #include <rosbag2_storage/topic_metadata.hpp>
 #include <rosbag2_cpp/converter_options.hpp>
 #include <ros2bag_triggered/trigger_base.hpp>
@@ -12,6 +13,7 @@
 #include <unordered_map>
 #include <ament_index_cpp/get_package_prefix.hpp>
 #include <yaml-cpp/yaml.h>
+#include <ros2bag_triggered/triggered_writer.hpp>
 
 namespace ros2bag_triggered
 {
@@ -35,9 +37,11 @@ private:
         uint64_t max_bagfile_size;
         uint64_t max_cache_size;
         double trigger_buffer_duration;
+        double crop_gap;
     };
     
     void initialize(const std::optional<Config>& config);
+    //@ToDo: Replace the following with appropriate converter wrappers from rosbag2 API.
     void initialize_config(const std::optional<Config>& config);
     void reset_writer();
     void crop_and_reset();
@@ -52,10 +56,10 @@ private:
     template<std::size_t... Is>
     void initialize_triggers(std::index_sequence<Is...>);
 
-    rosbag2_cpp::Writer writer_;
+    rosbag2_cpp::Writer writer_{/*writer_impl=*/std::make_unique<ros2bag_triggered::TriggeredWriter>()};
     std::vector<rclcpp::GenericSubscription::SharedPtr> subscriptions_;
     std::unordered_map<std::string, TriggerVariant> triggers_;
-    YAML::Node topics_config_; //@TODO: Get rid of YAML dependency for initialization.
+    YAML::Node topics_config_;
     Config config_;
     rclcpp::TimerBase::SharedPtr trigger_buffer_timer_;
     rosbag2_storage::StorageOptions last_bag_options_;
