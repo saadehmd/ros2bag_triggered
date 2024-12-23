@@ -11,7 +11,11 @@
 #include <variant>
 #include <unordered_map>
 #include <yaml-cpp/yaml.h>
+#include <yaml-cpp/exceptions.h>
 
+#include <examples/battery_health_trigger.hpp>
+#include <examples/navsat_invalid_fix_trigger.hpp>
+#include <examples/zone_trigger_with_pose_stamped.hpp>
 
 namespace ros2bag_triggered
 {
@@ -22,7 +26,7 @@ class TriggeredRecorderNode : public rclcpp::Node
 public:
     TriggeredRecorderNode(std::string&& node_name = "triggered_recorder_node", 
                           const rclcpp::NodeOptions& node_options = rclcpp::NodeOptions());
-    ~TriggeredRecorderNode();
+    ~TriggeredRecorderNode() = default;
 
 
 private:
@@ -48,7 +52,7 @@ private:
                         const std::string& topic_name, 
                         const std::string& topic_type,
                         TriggerVariant& trigger);
-    void crop_points_from_triggers(const std::variant<TriggerVariant>& trigger,
+    void crop_points_from_triggers(TriggerVariant& trigger,
                                    const std::shared_ptr<rclcpp::SerializedMessage>& msg);
 
     template<std::size_t... Is>
@@ -61,7 +65,7 @@ private:
     Config config_;
     rclcpp::TimerBase::SharedPtr trigger_buffer_timer_;
     rosbag2_storage::StorageOptions last_bag_options_;
-    std::pair<int64_t, int64_t> crop_points_{{-1, -1}};
+    std::pair<int64_t, int64_t> crop_points_{-1, -1};
 };
 
 } // namespace ros2bag_triggered

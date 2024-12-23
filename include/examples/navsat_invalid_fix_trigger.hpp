@@ -18,7 +18,7 @@ public:
         fromYaml(node);
     }
     
-    NavSatInvalidFixTrigger() = delete;
+    NavSatInvalidFixTrigger() = default;
     ~NavSatInvalidFixTrigger() override = default;
     
     bool isTriggered(const sensor_msgs::msg::NavSatFix::SharedPtr msg) const override;

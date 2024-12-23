@@ -30,6 +30,13 @@ add_library(${PROJECT_NAME}_examples SHARED
 
 add_library(${PROJECT_NAME} SHARED
   src/triggered_recorder_node.cpp
+  src/triggered_writer.cpp
+)
+
+add_executable(${PROJECT_NAME}_example_node examples/main.cpp)
+
+target_link_libraries(${PROJECT_NAME}_example_node
+  ${PROJECT_NAME}
 )
 
 set(ament_cmake_dependencies
@@ -38,6 +45,7 @@ set(ament_cmake_dependencies
   rosbag2_transport
   rosbag2_storage
   rosbag2
+  std_msgs
   rosgraph_msgs
   geometry_msgs
   sensor_msgs
@@ -47,8 +55,11 @@ set(ament_cmake_dependencies
 include_directories(SYSTEM include)
 #target_include_directories(${PROJECT_NAME}_examples ${PROJECT_NAME} PRIVATE include)
 
-ament_target_dependencies(${PROJECT_NAME}_examples ${ament_cmake_dependencies})
+
 ament_target_dependencies(${PROJECT_NAME} ${ament_cmake_dependencies})
+ament_target_dependencies(${PROJECT_NAME}_examples ${ament_cmake_dependencies})
+target_link_libraries(${PROJECT_NAME}_example_node ${PROJECT_NAME} ${PROJECT_NAME}_examples)
+ament_target_dependencies(${PROJECT_NAME}_example_node ${ament_cmake_dependencies} )
 
 install(TARGETS ${PROJECT_NAME}_examples 
   EXPORT export_${PROJECT_NAME}_examples 
@@ -59,6 +70,13 @@ install(TARGETS ${PROJECT_NAME}_examples
 
 install(TARGETS ${PROJECT_NAME}
   EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+install(TARGETS ${PROJECT_NAME}_example_node
+  EXPORT export_${PROJECT_NAME}_example_node
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin

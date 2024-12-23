@@ -18,7 +18,7 @@ public:
         fromYaml(node);
     }
     
-    BatteryHealthTrigger() = delete;
+    BatteryHealthTrigger() = default;
     ~BatteryHealthTrigger() override = default;
     
     bool isTriggered(const sensor_msgs::msg::BatteryState::SharedPtr msg) const override;

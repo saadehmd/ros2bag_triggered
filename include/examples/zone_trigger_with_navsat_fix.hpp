@@ -30,7 +30,7 @@ public:
         fromYaml(node);
     }
 
-    ZoneTriggerWithNavSatFix() = delete;
+    ZoneTriggerWithNavSatFix() = default;
     ~ZoneTriggerWithNavSatFix() override = default;
     
     bool isTriggered(const sensor_msgs::msg::NavSatFix::SharedPtr msg) const override;

@@ -16,6 +16,7 @@ void ZoneTriggerWithNavSatFix::fromYaml(const YAML::Node& node)
     // on problems parsing the configuration from yaml. Inclduing missing key-value pairs or wrong access-types.
     try
     {
+        enabled_ = node["enabled"].as<bool>();
         persistance_duration_ =  rclcpp::Duration::from_seconds(node["persistance_duration"].as<uint64_t>());
         use_msg_stamp_ = node["use_msg_stamp"].as<bool>();
         trigger_zone_.latitude_min = node["latitude_min"].as<double>();
