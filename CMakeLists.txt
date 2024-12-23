@@ -29,7 +29,6 @@ add_library(${PROJECT_NAME}_examples SHARED
 )
 
 add_library(${PROJECT_NAME} SHARED
-  src/triggered_recorder_node.cpp
   src/triggered_writer.cpp
 )
 

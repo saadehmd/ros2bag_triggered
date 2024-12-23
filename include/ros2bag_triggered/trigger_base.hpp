@@ -24,6 +24,7 @@ public:
     
     bool onSurgeSerialized(const std::shared_ptr<rclcpp::SerializedMessage> serialized_msg) 
     {
+        if(!isEnabled()) return false;
         if(!serialized_msg)
         {
             return onSurge(nullptr);
@@ -37,10 +38,7 @@ public:
     bool onSurge(const typename T::SharedPtr msg)
     {   
 
-        if (!isEnabled())
-        {
-            return false;
-        }
+        if(!isEnabled()) return false;
 
         if (!use_msg_stamp_ && !clock_)
         {

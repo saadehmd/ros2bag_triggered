@@ -14,7 +14,6 @@ using namespace ros2bag_triggered;
                                examples::ZoneTriggerWithPoseStamped>;*/
 
 using MyVariant = std::variant< examples::NavSatInvalidFixTrigger, examples::BatteryHealthTrigger>;
-template class ros2bag_triggered::TriggeredRecorderNode<MyVariant>;
 
 int main(int argc, char** argv) 
 {
