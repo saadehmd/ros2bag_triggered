@@ -46,25 +46,14 @@ public:
 
 private:
 
-    struct Config
+    void initialize(const std::optional<ros2bag_triggered::TriggeredWriter::Config>& config)
     {
-        std::string bag_root_dir;
-        std::string topic_config_path;
-        uint64_t max_bagfile_duration;
-        uint64_t max_bagfile_size;
-        uint64_t max_cache_size;
-        double trigger_buffer_duration;
-        double crop_gap;
-    };
-
-    void initialize(const std::optional<Config>& config)
-    {
-        initialize_config(config);
-        trigger_buffer_timer_ = create_wall_timer(std::chrono::duration<double>(config_.trigger_buffer_duration), [this](){crop_and_reset();});
+        auto prefix_path = ament_index_cpp::get_package_prefix("ros2bag_triggered");
         YAML::Node topics_config;
         try
         {
-            topics_config = YAML::LoadFile(config_.topic_config_path+"/topic_config.yaml");
+            topics_config = YAML::LoadFile(prefix_path + "/config/topic_config.yaml");
+            get_writer_impl().initialize(config);
         }
         catch(YAML::BadFile& exc)
         {
@@ -78,37 +67,22 @@ private:
         // This is an expensive operation, so we do it only once in the beginning.
         create_subscriptions();
 
-    }
+        trigger_buffer_timer_ = create_wall_timer(
+            std::chrono::duration<double>(get_writer_impl().get_config().trigger_buffer_duration), 
+            [this]() { crop_and_reset(); }
+        );
 
-    void initialize_config(const std::optional<Config>& config)
-    {
-        auto prefix_path = ament_index_cpp::get_package_prefix("ros2bag_triggered");
-        
-        if (config.has_value())
-        {
-            config_ = config.value();
-            return;
-        }
-
-        config_.bag_root_dir = declare_parameter("bag_path", prefix_path + "/ros2bag_triggered/");
-        config_.topic_config_path = declare_parameter("topic_config_path", prefix_path + "config/topic_config.yaml");
-        config_.max_bagfile_duration = declare_parameter("max_bagfile_duration", 300);
-        config_.max_bagfile_size = declare_parameter("max_bagfile_size", 10e10);
-        config_.max_cache_size = declare_parameter("max_cache_size", 0);
-        config_.trigger_buffer_duration = declare_parameter("trigger_buffer_duration", 600);
-        config_.crop_gap = declare_parameter("crop_gap", 0.0);
-    }   
+    } 
 
     void reset_writer()
     {
         rosbag2_storage::StorageOptions storage_options;
         auto stamp = get_clock()->now().nanoseconds();
-        last_bag_options_.uri = config_.bag_root_dir + '/' + std::to_string(stamp);
-        last_bag_options_.max_bagfile_size = config_.max_bagfile_size;
-        last_bag_options_.max_bagfile_duration = config_.max_bagfile_duration;
-        last_bag_options_.max_cache_size = config_.max_cache_size;
-        last_bag_options_.storage_id = rosbag2_storage::get_default_storage_id();
-        writer_.open(last_bag_options_);
+        auto& triggered_writer = get_writer_impl();
+        auto last_storage_options = triggered_writer.get_storage_options();
+        last_storage_options.uri = triggered_writer.get_config().bag_root_dir + '/' + std::to_string(stamp);
+
+        writer_.open(last_storage_options);
 
         //Create all topics immediately after creating the new writer
         for (const auto& topic : topics_config_)
@@ -136,18 +110,15 @@ private:
             std::visit(reset_trigger, trigger.second);
         }
 
+        auto& triggered_writer = get_writer_impl();
         if(crop_points_.first < 0 || crop_points_.second < 0)
         {
-            RCLCPP_WARN(get_logger(), "No triggers were detected on the bag: %s", last_bag_options_.uri.c_str());
+            RCLCPP_WARN(get_logger(), "No triggers were detected on the bag: %s", triggered_writer.get_storage_options().uri.c_str());
         }
 
         /* Change the start and end times of the bag before closing, to impliciltly perform cropping of the bag. 
-        Only supported with ROS2 >= Jazzy  */
-        auto& base_writer = writer_.get_implementation_handle();
-        auto& triggered_writer = static_cast<ros2bag_triggered::TriggeredWriter&>(base_writer);
-
-        /** If there were no triggers, one or both crop points are negative and hence the writer discards all 
-         *  the recorded messages during writer.close() call. */
+        Only supported with ROS2 >= Jazzy. If there were no triggers, one or both crop points are negative and 
+        hence the writer discards all the recorded messages during writer.close() call. */
         triggered_writer.set_crop_points(crop_points_.first, crop_points_.second);
 
         /** Closing checks the time-range of messages before writing and discards if messages are out of this range.*/
@@ -223,8 +194,8 @@ private:
             }
 
             auto& last_trigger = all_triggers.back();
-            auto start_point = static_cast<int64_t>(last_trigger.first - config_.crop_gap);
-            auto stop_point =  static_cast<int64_t>(last_trigger.second + config_.crop_gap);
+            auto start_point = static_cast<int64_t>(last_trigger.first);
+            auto stop_point =  static_cast<int64_t>(last_trigger.second);
             crop_points_.first = crop_points_.first >= 0  ? std::min(crop_points_.first, start_point) : last_trigger.first;
             crop_points_.second = std::max(crop_points_.second, stop_point);
             
@@ -237,14 +208,19 @@ private:
         // ToDo: Implement type-check to make sure user only creates a variants of TriggerBase Derived classes.
         ((triggers_[std::variant_alternative_t<Is, TriggerVariant>::name] = std::variant_alternative_t<Is, TriggerVariant>{}), ...);
     }
+    
+    ros2bag_triggered::TriggeredWriter & get_writer_impl()
+    {
+        auto& base_writer = writer_.get_implementation_handle();
+        auto& triggered_writer = static_cast<ros2bag_triggered::TriggeredWriter&>(base_writer);
+        return triggered_writer;
+    }
 
     rosbag2_cpp::Writer writer_{/*writer_impl=*/std::make_unique<ros2bag_triggered::TriggeredWriter>()};
     std::vector<rclcpp::GenericSubscription::SharedPtr> subscriptions_;
     std::unordered_map<std::string, TriggerVariant> triggers_;
     YAML::Node topics_config_;
-    Config config_;
     rclcpp::TimerBase::SharedPtr trigger_buffer_timer_;
-    rosbag2_storage::StorageOptions last_bag_options_;
     std::pair<int64_t, int64_t> crop_points_{-1, -1};
 };
 
