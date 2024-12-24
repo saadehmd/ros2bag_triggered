@@ -13,7 +13,7 @@ using namespace ros2bag_triggered;
                                examples::NavSatInvalidFixTrigger, 
                                examples::ZoneTriggerWithPoseStamped>;*/
 
-using MyVariant = std::variant< examples::NavSatInvalidFixTrigger, examples::BatteryHealthTrigger>;
+using MyVariant = std::variant<examples::NavSatInvalidFixTrigger, examples::BatteryHealthTrigger>;
 
 int main(int argc, char** argv) 
 {

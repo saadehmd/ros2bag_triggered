@@ -20,14 +20,14 @@ namespace ros2bag_triggered
 {
 
 //Visitors.
-auto reset_trigger = [](auto& arg) {arg.reset();};
-auto initializer = [](auto& arg, const YAML::Node& config){arg = decltype(arg)(config);};
-auto isUsingMsgStamps = [](auto& arg) -> bool {return arg.isUsingMsgStamps();};
-auto setClock = [](auto& arg, const rclcpp::Clock::SharedPtr& clock){arg.setClock(clock);};
-auto getAllTriggers = [](auto& arg) -> std::vector<std::pair<uint64_t, uint64_t>> {return arg.getAllTriggers();};
-auto onSurge = [](auto& arg, const std::shared_ptr<rclcpp::SerializedMessage>& serialized_msg) -> bool 
+auto resetTrigger = [](auto& trigger) {trigger.reset();};
+auto initializeTrigger = [](auto& trigger, const YAML::Node& config){trigger = decltype(trigger)(config);};
+auto isUsingMsgStamps = [](auto& trigger) -> bool {return trigger.isUsingMsgStamps();};
+auto setClock = [](auto& trigger, const rclcpp::Clock::SharedPtr& clock){trigger.setClock(clock);};
+auto getAllTriggers = [](auto& trigger) -> std::vector<std::pair<uint64_t, uint64_t>> {return trigger.getAllTriggers();};
+auto onSurge = [](auto& trigger, const std::shared_ptr<rclcpp::SerializedMessage>& serialized_msg) -> bool 
 {   
-    return arg.onSurgeSerialized(serialized_msg);
+    return trigger.onSurgeSerialized(serialized_msg);
 };
 
 template<typename TriggerVariant>
@@ -107,7 +107,7 @@ private:
         for (auto& trigger : triggers_)
         {   
             crop_points_from_triggers(trigger.second, /*msg=*/nullptr); // nullptr acts as an abort signal to the triggers.
-            std::visit(reset_trigger, trigger.second);
+            std::visit(resetTrigger, trigger.second);
         }
 
         auto& triggered_writer = get_writer_impl();
@@ -155,7 +155,7 @@ private:
                     auto trigger_type = trigger_info["type"].as<std::string>();
                     auto trigger = triggers_[trigger_type];
 
-                    std::visit([&trigger_info](auto& arg){initializer(arg, trigger_info);}, trigger);
+                    std::visit([&trigger_info](auto& arg){initializeTrigger(arg, trigger_info);}, trigger);
                     if(std::visit(isUsingMsgStamps, trigger))
                     {
                             std::visit([&](auto& arg){setClock(arg, get_clock());}, trigger);
@@ -205,7 +205,6 @@ private:
     template<std::size_t... Is>
     void initialize_triggers(std::index_sequence<Is...>)
     {
-        // ToDo: Implement type-check to make sure user only creates a variants of TriggerBase Derived classes.
         ((triggers_[std::variant_alternative_t<Is, TriggerVariant>::name] = std::variant_alternative_t<Is, TriggerVariant>{}), ...);
     }
     
