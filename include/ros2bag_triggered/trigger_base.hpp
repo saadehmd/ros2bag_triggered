@@ -4,12 +4,15 @@
 #include <rclcpp/rclcpp.hpp>
 #include <limits>
 #include <yaml-cpp/yaml.h>
+#include <ros2bag_triggered/type_traits.hpp>
 
 namespace ros2bag_triggered {
 
 template<typename T>
 class TriggerBase
 {
+    static_assert(type_traits::IsRosIdlType<T>::value, "TriggerBase can only be instantiated with ROS2-IDL message types");
+    
 public:
 
     explicit TriggerBase(double persistance_duration, const rclcpp::Clock::SharedPtr& clock, bool use_msg_stamp)
@@ -21,7 +24,24 @@ public:
     TriggerBase() = default;
     virtual ~TriggerBase() = default;
     virtual bool isTriggered(const typename T::SharedPtr msg) const = 0;
-    
+    virtual std::string getName() const = 0;    
+
+    // Utility function: Return message timestamp if message has header
+    template <typename MsgT = T>
+    typename std::enable_if<type_traits::HasHeader<MsgT>::value, rclcpp::Time>::type
+    GetTimeStamp(const typename T::SharedPtr msg) 
+    {
+        return rclcpp::Time(msg->header.stamp);
+    }
+
+    // Utility function: Return current time if message has no header
+    template <typename MsgT = T>
+    typename std::enable_if<!type_traits::HasHeader<MsgT>::value, rclcpp::Time>::type
+    GetTimeStamp(const typename T::SharedPtr) 
+    {
+        return clock_->now();
+    }
+
     bool onSurgeSerialized(const std::shared_ptr<rclcpp::SerializedMessage> serialized_msg) 
     {
         if(!isEnabled()) return false;
@@ -45,7 +65,8 @@ public:
             throw std::runtime_error("No stamps on the msgs and no clock provided");
         }
         //Todo: The headerless messages give a compilation error. Deal with that later.
-        auto stamp = use_msg_stamp_ && msg ? rclcpp::Time(msg->header.stamp) : clock_->now();
+        //auto stamp = use_msg_stamp_ && msg && !isHeaderLess() ? rclcpp::Time(msg->header.stamp) : clock_->now();
+        auto stamp = use_msg_stamp_ && msg ? GetTimeStamp<T>(msg) : clock_->now();
         auto trigger_duration = stamp.nanoseconds() - first_stamp_;
         bool negative_edge = false;
 
