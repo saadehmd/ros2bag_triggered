@@ -19,7 +19,7 @@ void BatteryHealthTrigger::fromYaml(const YAML::Node& node)
     }
     catch(const YAML::Exception& e)
     {
-        std::cerr << "Exception in parsing "<< name << " from YAML: " << e.what() << '\n';
+        std::cerr << "Exception in parsing "<< getName() << " from YAML: " << e.what() << '\n';
     }
     
 }

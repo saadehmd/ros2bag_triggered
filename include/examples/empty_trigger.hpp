@@ -28,16 +28,13 @@ public:
 
     std::string getName() const override
     {
-        return name;
+        return "EmptyTrigger";
     }
     
-    static const std::string name;
-
 protected:
     void fromYaml(const YAML::Node& node) override
     {}
 };
-const std::string EmptyTrigger::name = "EmptyTrigger";
 }  // namespace ros2bag_triggered::examples
 
 #endif  // EMPTY_TRIGGER_HPP

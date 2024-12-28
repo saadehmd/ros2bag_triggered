@@ -35,14 +35,15 @@ public:
     
     bool isTriggered(const sensor_msgs::msg::NavSatFix::SharedPtr msg) const override;
 
-    static const std::string name;
-
+    std::string getName() const override
+    {
+        return "ZoneTriggerWithNavSatFix";
+    }
+    
 protected:
     void fromYaml(const YAML::Node& node) override;
     TriggerZone trigger_zone_;
 };
-
-const std::string ZoneTriggerWithNavSatFix::name = "ZoneTriggerWithNavSatFix";
     
 
 }; // namespace ros2bag_triggered::examples

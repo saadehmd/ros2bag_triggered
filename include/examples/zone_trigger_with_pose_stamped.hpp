@@ -34,13 +34,15 @@ public:
 
     bool isTriggered(const geometry_msgs::msg::PoseStamped::SharedPtr msg) const override;
 
-    static const std::string name;
-
+    std::string getName() const override
+    {
+        return "ZoneTriggerWithPoseStamped";
+    }
+    
 protected:
     void fromYaml(const YAML::Node& node) override;
     TriggerZone trigger_zone_;
 };
-const std::string ZoneTriggerWithPoseStamped::name = "ZoneTriggerWithPoseStamped";
 
     
 

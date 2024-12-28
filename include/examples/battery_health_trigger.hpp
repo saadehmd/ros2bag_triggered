@@ -23,12 +23,14 @@ public:
     
     bool isTriggered(const sensor_msgs::msg::BatteryState::SharedPtr msg) const override;
 
-    static const std::string name;
-
+    std::string getName() const override
+    {
+        return "BatteryHealthTrigger";
+    }
+    
 protected:
     void fromYaml(const YAML::Node& node) override;
 };
-const std::string BatteryHealthTrigger::name = "BatteryHealthTrigger";
 }  // namespace ros2bag_triggered::examples
 
 #endif  // BATTERY_HEALTH_TRIGGER_HPP

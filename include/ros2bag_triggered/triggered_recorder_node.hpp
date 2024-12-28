@@ -204,8 +204,12 @@ private:
 
     template<std::size_t... Is>
     void initialize_triggers(std::index_sequence<Is...>)
-    {
-        ((triggers_[std::variant_alternative_t<Is, TriggerVariant>::name] = std::variant_alternative_t<Is, TriggerVariant>{}), ...);
+    {   
+        (([&]() {
+            using TriggerT = std::variant_alternative_t<Is, TriggerVariant>;
+            auto temp = TriggerT{};
+            triggers_[temp.getName()] = std::move(temp);
+        }()), ...);
     }
     
     ros2bag_triggered::TriggeredWriter & get_writer_impl()
