@@ -6,7 +6,6 @@
 #include <rosbag2_storage/topic_metadata.hpp>
 #include <ros2bag_triggered/triggered_writer.hpp>
 #include <ament_index_cpp/get_package_prefix.hpp>
-#include <rosbag2_storage/default_storage_id.hpp>
 #include <ros2bag_triggered/triggered_recorder_node.hpp>
 #include <memory>
 #include <chrono>
@@ -21,14 +20,21 @@ namespace ros2bag_triggered
 
 //Visitors.
 auto resetTrigger = [](auto& trigger) {trigger.reset();};
-auto initializeTrigger = [](auto& trigger, const YAML::Node& config){trigger = decltype(trigger)(config);};
 auto isUsingMsgStamps = [](auto& trigger) -> bool {return trigger.isUsingMsgStamps();};
 auto setClock = [](auto& trigger, const rclcpp::Clock::SharedPtr& clock){trigger.setClock(clock);};
 auto getAllTriggers = [](auto& trigger) -> std::vector<std::pair<uint64_t, uint64_t>> {return trigger.getAllTriggers();};
+auto getMsgType = [](auto& trigger) -> std::string {return trigger.getMsgType();};
+auto getTriggerInfo = [](auto& trigger) -> std::string {return trigger.getTriggerInfo();};
 auto onSurge = [](auto& trigger, const std::shared_ptr<rclcpp::SerializedMessage>& serialized_msg) -> bool 
 {   
     return trigger.onSurgeSerialized(serialized_msg);
 };
+auto configureTrigger = [](auto& trigger, const YAML::Node& config)
+{
+    using TriggerT = typename std::remove_reference<decltype(trigger)>::type;
+    trigger = TriggerT(config);
+};
+
 
 template<typename TriggerVariant>
 class TriggeredRecorderNode : public rclcpp::Node
@@ -48,11 +54,11 @@ private:
 
     void initialize(const std::optional<ros2bag_triggered::TriggeredWriter::Config>& config)
     {
+        RCLCPP_INFO(get_logger(), "Initializing Triggered Recorder Node");
         auto prefix_path = ament_index_cpp::get_package_prefix("ros2bag_triggered");
-        YAML::Node topics_config;
         try
         {
-            topics_config = YAML::LoadFile(prefix_path + "/config/topic_config.yaml");
+            topics_config_ = YAML::LoadFile(prefix_path + "/config/topic_config.yaml");
             get_writer_impl().initialize(config);
         }
         catch(YAML::BadFile& exc)
@@ -75,7 +81,8 @@ private:
     } 
 
     void reset_writer()
-    {
+    {   
+        RCLCPP_INFO(get_logger(), "Resetting the writer...");
         rosbag2_storage::StorageOptions storage_options;
         auto stamp = get_clock()->now().nanoseconds();
         auto& triggered_writer = get_writer_impl();
@@ -83,6 +90,7 @@ private:
         last_storage_options.uri = triggered_writer.get_config().bag_root_dir + '/' + std::to_string(stamp);
 
         writer_.open(last_storage_options);
+        RCLCPP_INFO(get_logger(), "Opened new bag file: %s", last_storage_options.uri.c_str());
 
         //Create all topics immediately after creating the new writer
         for (const auto& topic : topics_config_)
@@ -101,6 +109,7 @@ private:
 
     void crop_and_reset()
     {   
+        RCLCPP_INFO(get_logger(), "Trigger buffer timer callback. Running crop and reset...");
         /* Send an early termination surge to all triggers to
         check if any of them are activated and can update
         crop points for the bag */
@@ -147,39 +156,53 @@ private:
             auto topic_name = topic.first.as<std::string>();
             auto topic_cfg  = topic.second;
             auto msg_type = topic_cfg["msg_type"].as<std::string>();
-
+            
+            std::string triggers_debug_info = "Subscribed to topic: " + topic_name + " Msg type: " +  msg_type + " with triggers: [";
+            
             if(topic_cfg["triggers"].IsDefined())
             {   
-                for (const YAML::Node& trigger_info : topic_cfg["triggers"])
+                
+                for (const YAML::Node& triggers_info : topic_cfg["triggers"])
                 {
-                    auto trigger_type = trigger_info["type"].as<std::string>();
-                    auto trigger = triggers_[trigger_type];
+                    auto trigger_type = triggers_info["type"].as<std::string>();
 
-                    std::visit([&trigger_info](auto& arg){initializeTrigger(arg, trigger_info);}, trigger);
-                    if(std::visit(isUsingMsgStamps, trigger))
+                    try
                     {
-                            std::visit([&](auto& arg){setClock(arg, get_clock());}, trigger);
-                    }        
-                    std::function<void(std::shared_ptr<rclcpp::SerializedMessage> msg)> callback = 
-                    std::bind(&TriggeredRecorderNode::topic_callback, this, std::placeholders::_1, topic_name, msg_type, trigger);
-
-                    subscriptions_.push_back(create_generic_subscription(topic_name, msg_type, rclcpp::QoS(10), callback));
+                        auto& trigger = triggers_.at(trigger_type);
+                        std::visit([&triggers_info](auto& arg){configureTrigger(arg, triggers_info);}, trigger);
+                        if(std::visit(isUsingMsgStamps, trigger))
+                        {
+                                std::visit([&](auto& arg){setClock(arg, get_clock());}, trigger);
+                        }
+                        std::function<void(std::shared_ptr<rclcpp::SerializedMessage> msg)> callback = 
+                        std::bind(&TriggeredRecorderNode::topic_callback, this, std::placeholders::_1, topic_name, msg_type, trigger);
+                        triggers_debug_info += std::visit(getTriggerInfo, trigger);
+                        subscriptions_.push_back(create_generic_subscription(topic_name, msg_type, rclcpp::QoS(10), callback));
+                    }
+                    catch(const std::out_of_range& e)
+                    {
+                        RCLCPP_ERROR(get_logger(), "Trigger type %s not found: %s", trigger_type.c_str(), e.what());
+                        RCLCPP_ERROR(get_logger(), "Registered Trigger types are:-");
+                        for(auto& [key, value] : triggers_)
+                        {
+                            RCLCPP_ERROR(get_logger(), "Trigger Type: %s", key.c_str());
+                        }
+                        throw e;
+                    }  
                 }
             }
-                
+            RCLCPP_INFO(get_logger(), (triggers_debug_info + "]").c_str());                
         }
-
     }
 
     void topic_callback(const std::shared_ptr<rclcpp::SerializedMessage> msg, 
-                                                            const std::string& topic_name, 
-                                                            const std::string& topic_type,
-                                                            TriggerVariant& trigger)
+                        const std::string& topic_name, 
+                        const std::string& topic_type,
+                        TriggerVariant& trigger)
     {  
         rclcpp::Time time_stamp = this->now();
         writer_.write(*msg, topic_name, topic_type, time_stamp);
         crop_points_from_triggers(trigger, msg);
-    
     }
 
     void crop_points_from_triggers(TriggerVariant& trigger, const std::shared_ptr<rclcpp::SerializedMessage>& msg)
@@ -210,6 +233,13 @@ private:
             auto temp = TriggerT{};
             triggers_[temp.getName()] = std::move(temp);
         }()), ...);
+
+        RCLCPP_INFO(get_logger(), "Recorder Node initialized with following trigger types:-");
+        for(auto& [key, value] : triggers_)
+        {
+            const auto msg_type = std::visit(getMsgType, value);
+            RCLCPP_INFO(get_logger(), "Trigger Type: %s , Msg Type: %s", key.c_str(), msg_type.c_str());
+        }
     }
     
     ros2bag_triggered::TriggeredWriter & get_writer_impl()

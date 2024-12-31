@@ -5,6 +5,7 @@
 #include <limits>
 #include <yaml-cpp/yaml.h>
 #include <ros2bag_triggered/type_traits.hpp>
+#include "std_msgs/msg/string.hpp"
 
 namespace ros2bag_triggered {
 
@@ -24,7 +25,23 @@ public:
     TriggerBase() = default;
     virtual ~TriggerBase() = default;
     virtual bool isTriggered(const typename T::SharedPtr msg) const = 0;
-    virtual std::string getName() const = 0;    
+    virtual std::string getName() const = 0;
+    std::string getMsgType() const
+    {
+        //return rclcpp::MessageTraits<T>::definition();
+        return rosidl_generator_traits::name<T>();
+        //typeid(std_msgs::msg::String).name();
+    }
+
+    virtual std::string getTriggerInfo() const
+    {
+        return "\n\tTrigger Type: " + getName() + 
+               "\n\tMsg Type: " + getMsgType() + 
+               "\n\tPersistance Duration: " + std::to_string(persistance_duration_.seconds()) + " seconds" +
+               "\n\tUsing Message Stamps: " + (use_msg_stamp_ ? "true" : "false") +
+               "\n\tEnabled: " + (enabled_ ? "true" : "false") +
+               "\n\t=======================================================================================\n";
+    }
 
     bool onSurgeSerialized(const std::shared_ptr<rclcpp::SerializedMessage> serialized_msg) 
     {
