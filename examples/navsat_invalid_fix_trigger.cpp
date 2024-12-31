@@ -15,12 +15,13 @@ void NavSatInvalidFixTrigger::fromYaml(const YAML::Node& node)
     try
     {
         enabled_ = node["enabled"].as<bool>();
-        persistance_duration_ =  rclcpp::Duration::from_seconds(node["persistance_duration"].as<uint64_t>());
+        persistance_duration_ =  rclcpp::Duration::from_seconds(node["persistance_duration"].as<double>());
         use_msg_stamp_ = node["use_msg_stamp"].as<bool>();
     }
     catch(const YAML::Exception& e)
     {
         std::cerr << "Exception in parsing "<< getName() << " from YAML: " << e.what() << '\n';
+        throw e;
     }
     
 }

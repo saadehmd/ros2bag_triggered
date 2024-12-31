@@ -2,6 +2,7 @@
 #include <examples/battery_health_trigger.hpp>
 #include <examples/navsat_invalid_fix_trigger.hpp>
 #include <examples/zone_trigger_with_pose_stamped.hpp>
+#include <examples/zone_trigger_with_navsat_fix.hpp>
 #include <ros2bag_triggered/triggered_recorder_node.hpp>
 #include <std_msgs/msg/string.hpp>
 
@@ -13,7 +14,7 @@ using namespace ros2bag_triggered;
                                examples::NavSatInvalidFixTrigger, 
                                examples::ZoneTriggerWithPoseStamped>;*/
 
-using MyVariant = std::variant<examples::NavSatInvalidFixTrigger, examples::BatteryHealthTrigger>;
+using MyVariant = std::variant<examples::ZoneTriggerWithPoseStamped, examples::ZoneTriggerWithNavSatFix, examples::NavSatInvalidFixTrigger, examples::BatteryHealthTrigger>;
 
 int main(int argc, char** argv) 
 {
@@ -22,5 +23,4 @@ int main(int argc, char** argv)
     rclcpp::spin(node);
     rclcpp::shutdown();
     return 0;
-
 }

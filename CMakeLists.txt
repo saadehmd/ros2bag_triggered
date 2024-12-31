@@ -32,11 +32,9 @@ add_library(${PROJECT_NAME} SHARED
   src/triggered_writer.cpp
 )
 
-add_executable(${PROJECT_NAME}_example_node examples/main.cpp)
+add_executable(example_node examples/main.cpp)
 
-target_link_libraries(${PROJECT_NAME}_example_node
-  ${PROJECT_NAME}
-)
+target_link_libraries(example_node ${PROJECT_NAME})
 
 set(ament_cmake_dependencies
   rclcpp
@@ -57,32 +55,41 @@ include_directories(SYSTEM include)
 
 ament_target_dependencies(${PROJECT_NAME} ${ament_cmake_dependencies})
 ament_target_dependencies(${PROJECT_NAME}_examples ${ament_cmake_dependencies})
-target_link_libraries(${PROJECT_NAME}_example_node ${PROJECT_NAME} ${PROJECT_NAME}_examples)
-ament_target_dependencies(${PROJECT_NAME}_example_node ${ament_cmake_dependencies} )
+target_link_libraries(example_node ${PROJECT_NAME} ${PROJECT_NAME}_examples)
+ament_target_dependencies(example_node ${ament_cmake_dependencies} )
 
 install(TARGETS ${PROJECT_NAME}_examples 
   EXPORT export_${PROJECT_NAME}_examples 
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib/${PROJECT_NAME}
+  LIBRARY DESTINATION lib/${PROJECT_NAME}
   RUNTIME DESTINATION bin
 )
 
 install(TARGETS ${PROJECT_NAME}
   EXPORT export_${PROJECT_NAME}
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib/${PROJECT_NAME}
+  LIBRARY DESTINATION lib/${PROJECT_NAME}
   RUNTIME DESTINATION bin
 )
 
-install(TARGETS ${PROJECT_NAME}_example_node
-  EXPORT export_${PROJECT_NAME}_example_node
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-)
+#install(TARGETS example_node
+#  #EXPORT export_${PROJECT_NAME}_example_node
+#  ARCHIVE DESTINATION lib/${PROJECT_NAME}
+#  LIBRARY DESTINATION lib/${PROJECT_NAME}
+#  RUNTIME DESTINATION bin
+#)
+
+install(TARGETS
+  example_node
+  DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY include/
   DESTINATION include
+)
+
+install(
+  DIRECTORY config/
+  DESTINATION config
 )
 
 #ament_export_include_directories(include)

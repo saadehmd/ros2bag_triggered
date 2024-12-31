@@ -17,18 +17,19 @@ void ZoneTriggerWithNavSatFix::fromYaml(const YAML::Node& node)
     try
     {
         enabled_ = node["enabled"].as<bool>();
-        persistance_duration_ =  rclcpp::Duration::from_seconds(node["persistance_duration"].as<uint64_t>());
+        persistance_duration_ =  rclcpp::Duration::from_seconds(node["persistance_duration"].as<double>());
         use_msg_stamp_ = node["use_msg_stamp"].as<bool>();
-        trigger_zone_.latitude_min = node["latitude_min"].as<double>();
-        trigger_zone_.latitude_max = node["latitude_max"].as<double>();
-        trigger_zone_.longitude_min = node["longitude_min"].as<double>();
-        trigger_zone_.longitude_max = node["longitude_max"].as<double>();
-        trigger_zone_.altitude_min = node["altitude_min"].as<double>();
-        trigger_zone_.altitude_max = node["altitude_max"].as<double>();
+        trigger_zone_.latitude_min = node["trigger_zone"]["latitude_min"].as<double>();
+        trigger_zone_.latitude_max = node["trigger_zone"]["latitude_max"].as<double>();
+        trigger_zone_.longitude_min = node["trigger_zone"]["longitude_min"].as<double>();
+        trigger_zone_.longitude_max = node["trigger_zone"]["longitude_max"].as<double>();
+        trigger_zone_.altitude_min = node["trigger_zone"]["altitude_min"].as<double>();
+        trigger_zone_.altitude_max = node["trigger_zone"]["altitude_max"].as<double>();
     }
     catch(const YAML::Exception& e)
     {
         std::cerr << "Exception in parsing "<< getName() << " from YAML: " << e.what() << '\n';
+        throw e;
     }
     
 }

@@ -1,3 +1,4 @@
+
 bag_root_dir: "./ros2bag_triggered"    # The directory where the bag files will be stored. The bag name would be infered as unix timestamp. Change this root dir accordingly.
 max_bagfile_size: 1000000000           # The maximum size a bagfile can be, in bytes, before it is split.
                                       # A value of 0 indicates that bagfile splitting will not be used.
