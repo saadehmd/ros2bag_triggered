@@ -10,8 +10,8 @@ namespace ros2bag_triggered::examples
 class BatteryHealthTrigger : public TriggerBase<sensor_msgs::msg::BatteryState>
 {
 public:
-    explicit BatteryHealthTrigger(uint64_t persistance_duration, const rclcpp::Clock::SharedPtr clock, bool use_msg_stamp)
-    : TriggerBase(persistance_duration, clock, use_msg_stamp) {}
+    explicit BatteryHealthTrigger(uint64_t persistance_duration, const rclcpp::Clock::SharedPtr clock, const std::shared_ptr<rclcpp::Logger> logger, bool use_msg_stamp)
+    : TriggerBase(persistance_duration, clock, logger, use_msg_stamp) {}
 
     BatteryHealthTrigger(const YAML::Node& node)
     {

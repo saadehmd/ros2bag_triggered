@@ -20,8 +20,8 @@ public:
         double z_max{0};
     };
 
-    ZoneTriggerWithPoseStamped(uint64_t persistance_duration, const rclcpp::Clock::SharedPtr clock, bool use_msg_stamp, const TriggerZone& trigger_zone) 
-    : TriggerBase(persistance_duration, clock, use_msg_stamp),
+    ZoneTriggerWithPoseStamped(uint64_t persistance_duration, const rclcpp::Clock::SharedPtr clock, const std::shared_ptr<rclcpp::Logger> logger, bool use_msg_stamp, const TriggerZone& trigger_zone) 
+    : TriggerBase(persistance_duration, clock, logger, use_msg_stamp),
       trigger_zone_(trigger_zone) {}
 
     ZoneTriggerWithPoseStamped(const YAML::Node& node)

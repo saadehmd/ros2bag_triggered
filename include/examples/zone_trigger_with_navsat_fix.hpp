@@ -21,8 +21,8 @@ public:
         double altitude_max{0};
     };
 
-    ZoneTriggerWithNavSatFix(uint64_t persistance_duration, const rclcpp::Clock::SharedPtr clock, bool use_msg_stamp, const TriggerZone& trigger_zone) 
-    : TriggerBase(persistance_duration, clock, use_msg_stamp),
+    ZoneTriggerWithNavSatFix(uint64_t persistance_duration, const rclcpp::Clock::SharedPtr clock, const std::shared_ptr<rclcpp::Logger> logger, bool use_msg_stamp, const TriggerZone& trigger_zone) 
+    : TriggerBase(persistance_duration, clock, logger, use_msg_stamp),
       trigger_zone_(trigger_zone) {}
 
     ZoneTriggerWithNavSatFix(const YAML::Node& node)
