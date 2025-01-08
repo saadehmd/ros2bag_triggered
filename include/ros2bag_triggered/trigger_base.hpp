@@ -5,7 +5,7 @@
 #include <limits>
 #include <yaml-cpp/yaml.h>
 #include <ros2bag_triggered/type_traits.hpp>
-#include "std_msgs/msg/string.hpp"
+#include <std_msgs/msg/string.hpp>
 
 namespace ros2bag_triggered {
 
@@ -16,10 +16,11 @@ class TriggerBase
 
 public:
 
-    explicit TriggerBase(double persistance_duration, const rclcpp::Clock::SharedPtr& clock, bool use_msg_stamp)
+    explicit TriggerBase(double persistance_duration, const rclcpp::Clock::SharedPtr& clock, const std::shared_ptr<rclcpp::Logger> logger, bool use_msg_stamp)
     : persistance_duration_(rclcpp::Duration::from_seconds(persistance_duration)),
-      use_msg_stamp_(use_msg_stamp),
-      clock_(clock) 
+      clock_(clock),
+      logger_(logger),
+      use_msg_stamp_(use_msg_stamp) 
     {}
 
     TriggerBase() = default;
@@ -28,9 +29,7 @@ public:
     virtual std::string getName() const = 0;
     std::string getMsgType() const
     {
-        //return rclcpp::MessageTraits<T>::definition();
         return rosidl_generator_traits::name<T>();
-        //typeid(std_msgs::msg::String).name();
     }
 
     virtual std::string getTriggerInfo() const
@@ -43,6 +42,17 @@ public:
                "\n\t=======================================================================================\n";
     }
 
+    std::string getTriggerStats() const
+    {
+        std::string stats = "Trigger Stats for " + getName() + ":\n";
+        for (const auto& trigger : all_triggers_)
+        {
+            stats += "\n\tTriggered from: " + std::to_string(trigger.first) + " to " + std::to_string(trigger.second) + "\n";
+        }
+        stats += "\n\t=======================================================================================\n";
+        return stats;
+    }
+
     bool onSurgeSerialized(const std::shared_ptr<rclcpp::SerializedMessage> serialized_msg) 
     {
         if(!isEnabled()) return false;
@@ -50,15 +60,16 @@ public:
         {
             return onSurge(nullptr);
         }
-        typename T::SharedPtr msg; 
+        auto msg = std::make_shared<T>(); 
         rclcpp::Serialization<T> serializer;
         serializer.deserialize_message(serialized_msg.get(), msg.get());
+
+        if (!msg) RCLCPP_ERROR(*logger_, "Deserialization resulted in null msg %s", getName().c_str());
         return onSurge(msg);
     }
 
     bool onSurge(const typename T::SharedPtr msg)
     {   
-
         if(!isEnabled()) return false;
 
         if (!use_msg_stamp_ && !clock_)
@@ -66,22 +77,28 @@ public:
             throw std::runtime_error("No stamps on the msgs and no clock provided");
         }
         auto stamp = use_msg_stamp_ && msg ? GetTimeStamp<T>(msg) : clock_->now();
-        auto trigger_duration = stamp.nanoseconds() - first_stamp_;
+        auto trigger_duration = last_stamp_ - first_stamp_;
         bool negative_edge = false;
 
         if (msg && isTriggered(msg))
         {
             if (first_stamp_ == 0)
             {
+                RCLCPP_DEBUG(*logger_, "%s positive edge", getName().c_str());
                 first_stamp_ = stamp.nanoseconds();
             }
-            else    
-            {
-                last_stamp_ = stamp.nanoseconds();
-            }
+
+            last_stamp_ = stamp.nanoseconds();
         }
         else if (trigger_duration >= persistance_duration_.nanoseconds())
         {
+            RCLCPP_DEBUG(*logger_, "%s negative edge", getName().c_str());
+            RCLCPP_INFO(
+                *logger_, 
+                "%s Last Persistent trigger duration: %f seconds", 
+                getName().c_str(), 
+                rclcpp::Duration(std::chrono::nanoseconds(trigger_duration)).seconds()
+            );
             all_triggers_.push_back(std::make_pair(first_stamp_, last_stamp_));
             negative_edge = true;
             first_stamp_ = 0;
@@ -102,6 +119,7 @@ public:
 
     void reset()
     {
+        RCLCPP_INFO(*logger_, "Resetting trigger: %s", getName().c_str());
         first_stamp_ = 0;
         last_stamp_ = 0;
         all_triggers_.clear();
@@ -110,6 +128,11 @@ public:
     void setClock(const rclcpp::Clock::SharedPtr& clock)
     {
         clock_ = clock ; 
+    }
+
+    void setLogger(const std::shared_ptr<rclcpp::Logger>& logger)
+    {
+        logger_ = logger;
     }
 
     bool isUsingMsgStamps() 
@@ -152,10 +175,11 @@ protected:
     bool enabled_{false};
     uint64_t first_stamp_{0};
     uint64_t last_stamp_{0};
-    bool use_msg_stamp_{false};
     std::vector<std::pair<uint64_t, uint64_t>> all_triggers_{};
     rclcpp::Duration persistance_duration_{rclcpp::Duration::from_seconds(0)};
     rclcpp::Clock::SharedPtr clock_{nullptr};
+    std::shared_ptr<rclcpp::Logger> logger_{nullptr};
+    bool use_msg_stamp_{false};
 };
 
 } // namespace ros2bag_triggered
