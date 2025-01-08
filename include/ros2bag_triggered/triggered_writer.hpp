@@ -5,6 +5,7 @@
 #include <rosbag2_cpp/writers/sequential_writer.hpp>
 #include <rosbag2_storage/storage_options.hpp>
 #include <ament_index_cpp/get_package_prefix.hpp>
+#include <rosbag2_storage/default_storage_id.hpp>
 #include <std_msgs/msg/bool.hpp>
 
 namespace ros2bag_triggered
@@ -19,6 +20,7 @@ public:
         std::string bag_root_dir;
         double trigger_buffer_duration;
         double crop_gap;
+        bool write_trigger_stats;
     };
 
     TriggeredWriter() : rosbag2_cpp::writers::SequentialWriter() {}
@@ -44,7 +46,6 @@ public:
     }
 
 private:
-   
     Config config_;
 
 

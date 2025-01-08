@@ -7,11 +7,11 @@ namespace ros2bag_triggered
 {
     void TriggeredWriter::set_crop_points(int64_t start_time, int64_t end_time)
     {   
-
-        start_time -= static_cast<int64_t>(config_.crop_gap);
-        end_time += static_cast<int64_t>(config_.crop_gap);
+        auto gap = rclcpp::Duration::from_seconds(config_.crop_gap).nanoseconds();
+        start_time -= static_cast<int64_t>(gap);
+        end_time += static_cast<int64_t>(gap);
         auto bag_start_time = duration_cast<std::chrono::nanoseconds>(metadata_.starting_time.time_since_epoch());
-        auto bag_end_time = bag_start_time + duration_cast<std::chrono::seconds>(metadata_.duration);
+        auto bag_end_time = bag_start_time + duration_cast<std::chrono::nanoseconds>(metadata_.duration);
 
         // Clip the crop-range so that it doesn't exceed the recorded bag's time-range.
         if(storage_options_.start_time_ns >= 0)
@@ -32,10 +32,15 @@ namespace ros2bag_triggered
             return;
         }
 
-        YAML::Node writer_cfg = YAML::LoadFile(prefix_path + "/config/parameters.yaml");
-        YAML::convert<rosbag2_storage::StorageOptions>::decode(writer_cfg, storage_options_);
-        config_.trigger_buffer_duration = writer_cfg["trigger_buffer_duration"].as<double>();
+        YAML::Node writer_cfg = YAML::LoadFile(prefix_path + "/config/config.yaml");
+
+        storage_options_.storage_id = rosbag2_storage::get_default_storage_id();
+        storage_options_.max_bagfile_size = writer_cfg["max_bagfile_size"].as<uint64_t>();
+        storage_options_.max_bagfile_duration = writer_cfg["max_bagfile_duration"].as<uint64_t>();
+        storage_options_.max_cache_size = writer_cfg["max_cache_size"].as<uint64_t>();
+        config_.trigger_buffer_duration = writer_cfg["trigger_buffer_interval"].as<double>();
         config_.crop_gap = writer_cfg["crop_gap"].as<double>();
-        config_.bag_root_dir = writer_cfg["bag_root_dir"].as<std::string>();
+        config_.bag_root_dir =  writer_cfg["bag_root_dir"].as<std::string>();
     }  
 }
+
