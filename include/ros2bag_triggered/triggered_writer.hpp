@@ -7,6 +7,7 @@
 #include <ament_index_cpp/get_package_prefix.hpp>
 #include <rosbag2_storage/default_storage_id.hpp>
 #include <std_msgs/msg/bool.hpp>
+#include <filesystem>
 
 namespace ros2bag_triggered
 {
@@ -27,6 +28,7 @@ public:
     ~TriggeredWriter() = default;
 
     void initialize(const std::optional<Config>& writer_config);
+    void close(bool delete_on_close);
 
     /**
      * @brief Set the cropping time range of the bag file.
@@ -39,15 +41,15 @@ public:
     {
         return config_;
     }
-
-    rosbag2_storage::StorageOptions get_storage_options() const
+    
+    rosbag2_storage::StorageOptions get_storage_options()
     {
+        // This should only return a copy of the storage options, otherwise it violates the encapsulation.
         return storage_options_;
     }
 
 private:
     Config config_;
-
 
 };
 

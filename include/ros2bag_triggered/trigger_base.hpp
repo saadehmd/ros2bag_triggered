@@ -58,6 +58,7 @@ public:
         if(!isEnabled()) return false;
         if(!serialized_msg)
         {
+            RCLCPP_DEBUG(*logger_, "Null serialized msg. Abort signal recieved %s", getName().c_str());
             return onSurge(nullptr);
         }
         auto msg = std::make_shared<T>(); 
@@ -119,7 +120,6 @@ public:
 
     void reset()
     {
-        RCLCPP_INFO(*logger_, "Resetting trigger: %s", getName().c_str());
         first_stamp_ = 0;
         last_stamp_ = 0;
         all_triggers_.clear();

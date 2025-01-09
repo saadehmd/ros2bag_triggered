@@ -41,6 +41,17 @@ namespace ros2bag_triggered
         config_.trigger_buffer_duration = writer_cfg["trigger_buffer_interval"].as<double>();
         config_.crop_gap = writer_cfg["crop_gap"].as<double>();
         config_.bag_root_dir =  writer_cfg["bag_root_dir"].as<std::string>();
+        config_.write_trigger_stats = writer_cfg["write_trigger_stats"].as<bool>();
+    }
+
+    void TriggeredWriter::close(bool delete_on_close)
+    {
+        rosbag2_cpp::writers::SequentialWriter::close();
+        if (delete_on_close && std::filesystem::exists(storage_options_.uri))
+        {
+            std::cout<<"Deleting bag file: "<<storage_options_.uri<<std::endl; 
+            std::filesystem::remove_all(storage_options_.uri);
+        }
     }  
 }
 

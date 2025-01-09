@@ -56,7 +56,10 @@ public:
         initialize(std::nullopt);
     }
 
-    ~TriggeredRecorderNode() = default;
+    ~TriggeredRecorderNode()
+    {
+        crop();
+    }
 
 
 private:
@@ -89,7 +92,12 @@ private:
 
         trigger_buffer_timer_ = create_wall_timer(
             std::chrono::duration<double>(get_writer_impl().get_config().trigger_buffer_duration), 
-            [this]() { crop_and_reset(); }
+            [this]() 
+            { 
+                crop();
+                //TODO: Test whether the 'create_topic()' calls are necessary after the bag is closed and reopened with new storage options.
+                reset_writer(); 
+            }
         );
 
     } 
@@ -119,40 +127,56 @@ private:
             topic_meta.serialization_format = serialization_format;
             writer_.create_topic(topic_meta);
         }
+
     }
 
-    void crop_and_reset()
+    void crop()
     {   
+        auto& triggered_writer = get_writer_impl();
+        
         /* Send an early termination surge to all triggers to
         check if any of them are activated and can update
-        crop points for the bag */
+        crop points for the bag. Also get trigger stats for writing later. */
+        std::string trigger_stats;
+        bool write_trigger_stats = triggered_writer.get_config().write_trigger_stats;
+        auto storage_options = triggered_writer.get_storage_options();
         for (auto& trigger : triggers_)
         {   
             crop_points_from_triggers(trigger.second, /*msg=*/nullptr); // nullptr acts as an abort signal to the triggers.
+            if (write_trigger_stats)
+            {
+                trigger_stats += std::visit(getTriggerStats, trigger.second);
+            }
             std::visit(resetTrigger, trigger.second);
         }
 
-        auto& triggered_writer = get_writer_impl();
-        if(crop_points_.first < 0 || crop_points_.second < 0)
+        bool no_triggers = crop_points_.first < 0 || crop_points_.second < 0;
+        if(no_triggers)
         {
-            RCLCPP_WARN(get_logger(), "No triggers were detected on the bag: %s", triggered_writer.get_storage_options().uri.c_str());
+            RCLCPP_WARN(get_logger(), "No triggers were detected. Deleting the bag: %s.", storage_options.uri.c_str());
         }
 
-        if (triggered_writer.get_config().write_trigger_stats)
+        if (write_trigger_stats && !no_triggers)
         {
-        
-            std::ofstream stats_file(triggered_writer.get_config().bag_root_dir + "/trigger_stats.txt");
-            if (!stats_file.is_open())
+            std::string bag_file_root = storage_options.uri;
+            size_t bag_file_number = storage_options.uri.find_last_of('/');
+            bool valid_bag_file = bag_file_number != std::string::npos;
+            if (valid_bag_file)  
             {
-                RCLCPP_ERROR(get_logger(), "Failed to open trigger stats file.");
-                return;
+                // From bag uri, remove the part that has bag_file_number in it.
+                bag_file_root = bag_file_root.substr(0, bag_file_number);
             }
-
-            for (const auto& trigger : triggers_)
+            
+            std::ofstream stats_file(bag_file_root + "/trigger_stats.txt");
+            if (stats_file.is_open() && valid_bag_file)
             {
-                stats_file << std::visit(getTriggerStats, trigger.second);
+                RCLCPP_INFO(get_logger(), "Writing trigger stats to file: %s", (bag_file_root + "/trigger_stats.txt").c_str());
+                stats_file << trigger_stats;
             }
-
+            else
+            {
+                RCLCPP_ERROR(get_logger(), "Failed to open trigger stats file: %s", (bag_file_root + "/trigger_stats.txt").c_str());
+            }
             stats_file.close();
         }
         
@@ -160,9 +184,11 @@ private:
         Only supported with ROS2 >= Jazzy. If there were no triggers, one or both crop points are negative and 
         hence the writer discards all the recorded messages during writer.close() call. */
         triggered_writer.set_crop_points(crop_points_.first, crop_points_.second);
+        crop_points_ = std::make_pair(-1, -1);
 
         /** Closing checks the time-range of messages before writing and discards if messages are out of this range.*/
-        writer_.close();
+        RCLCPP_INFO(get_logger(), "Closing the bag file: %s", triggered_writer.get_storage_options().uri.c_str());
+        triggered_writer.close(no_triggers);
 
         // @todo: Remove the following after appropriate testing of above method.
         /* Crop is simply a rewrite with new start/end timestamp information.
@@ -174,9 +200,6 @@ private:
         rosbag2_transport::RecordOptions record_options;
         record_options.all_topics = true;
         rosbag2_transport::bag_rewrite({last_bag_options_}, {std::make_pair(rewrite_bag_options, record_options)});**/
-
-        //TODO: Test whether the 'create_topic()' calls are necessary after the bag is closed and reopened with new storage options.
-        reset_writer();
         
     }
 
