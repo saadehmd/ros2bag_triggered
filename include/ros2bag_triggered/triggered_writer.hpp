@@ -4,6 +4,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rosbag2_cpp/writers/sequential_writer.hpp>
 #include <rosbag2_storage/storage_options.hpp>
+#include <rosbag2_cpp/converter_options.hpp>
 #include <ament_index_cpp/get_package_prefix.hpp>
 #include <rosbag2_storage/default_storage_id.hpp>
 #include <std_msgs/msg/bool.hpp>
@@ -28,7 +29,8 @@ public:
     ~TriggeredWriter() = default;
 
     void initialize(const std::optional<Config>& writer_config);
-    void close(bool delete_on_close);
+    void close();
+    void open(const rosbag2_storage::StorageOptions& storage_options, const rosbag2_cpp::ConverterOptions& converter_options);
 
     /**
      * @brief Set the cropping time range of the bag file.
@@ -42,14 +44,21 @@ public:
         return config_;
     }
     
-    rosbag2_storage::StorageOptions get_storage_options()
+    rosbag2_storage::StorageOptions get_storage_options() const
     {
         // This should only return a copy of the storage options, otherwise it violates the encapsulation.
         return storage_options_;
     }
 
+    std::string get_base_folder() const
+    {
+        return base_folder_;
+    }
+
 private:
     Config config_;
+    std::string base_folder_;
+    std::optional<rosbag2_storage::StorageOptions> rewrite_options_;
 
 };
 

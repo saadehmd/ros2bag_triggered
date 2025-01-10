@@ -133,13 +133,13 @@ private:
     void crop()
     {   
         auto& triggered_writer = get_writer_impl();
-        
+        auto base_folder = triggered_writer.get_base_folder();
+        std::string trigger_stats;
+        bool write_trigger_stats = triggered_writer.get_config().write_trigger_stats;
+
         /* Send an early termination surge to all triggers to
         check if any of them are activated and can update
         crop points for the bag. Also get trigger stats for writing later. */
-        std::string trigger_stats;
-        bool write_trigger_stats = triggered_writer.get_config().write_trigger_stats;
-        auto storage_options = triggered_writer.get_storage_options();
         for (auto& trigger : triggers_)
         {   
             crop_points_from_triggers(trigger.second, /*msg=*/nullptr); // nullptr acts as an abort signal to the triggers.
@@ -151,55 +151,36 @@ private:
         }
 
         bool no_triggers = crop_points_.first < 0 || crop_points_.second < 0;
-        if(no_triggers)
+        if (no_triggers)
         {
-            RCLCPP_WARN(get_logger(), "No triggers were detected. Deleting the bag: %s.", storage_options.uri.c_str());
+            RCLCPP_WARN(get_logger(), "No triggers were detected. Deleting the bag: %s.", base_folder.c_str());     
+        }
+        else
+        {
+            triggered_writer.set_crop_points(crop_points_.first, crop_points_.second);
         }
 
+        crop_points_ = std::make_pair(-1, -1); //Reset crop points for the next bag.
+
+        /** Closing checks the time-range of messages before writing and discards if messages are out of this range.*/
+        RCLCPP_INFO(get_logger(), "Closing the bag file: %s", base_folder.c_str());
+        writer_.close();
+
         if (write_trigger_stats && !no_triggers)
-        {
-            std::string bag_file_root = storage_options.uri;
-            size_t bag_file_number = storage_options.uri.find_last_of('/');
-            bool valid_bag_file = bag_file_number != std::string::npos;
-            if (valid_bag_file)  
+        {   
+            auto trigger_stats_file = triggered_writer.get_base_folder() + "_triggered/trigger_stats.txt";
+            std::ofstream stats_file(trigger_stats_file);
+            if (stats_file.is_open())
             {
-                // From bag uri, remove the part that has bag_file_number in it.
-                bag_file_root = bag_file_root.substr(0, bag_file_number);
-            }
-            
-            std::ofstream stats_file(bag_file_root + "/trigger_stats.txt");
-            if (stats_file.is_open() && valid_bag_file)
-            {
-                RCLCPP_INFO(get_logger(), "Writing trigger stats to file: %s", (bag_file_root + "/trigger_stats.txt").c_str());
+                RCLCPP_INFO(get_logger(), "Writing trigger stats to file: %s", (trigger_stats_file).c_str());
                 stats_file << trigger_stats;
             }
             else
             {
-                RCLCPP_ERROR(get_logger(), "Failed to open trigger stats file: %s", (bag_file_root + "/trigger_stats.txt").c_str());
+                RCLCPP_ERROR(get_logger(), "Failed to open trigger stats file: %s", (trigger_stats_file).c_str());
             }
             stats_file.close();
         }
-        
-        /* Change the start and end times of the bag before closing, to impliciltly perform cropping of the bag. 
-        Only supported with ROS2 >= Jazzy. If there were no triggers, one or both crop points are negative and 
-        hence the writer discards all the recorded messages during writer.close() call. */
-        triggered_writer.set_crop_points(crop_points_.first, crop_points_.second);
-        crop_points_ = std::make_pair(-1, -1);
-
-        /** Closing checks the time-range of messages before writing and discards if messages are out of this range.*/
-        RCLCPP_INFO(get_logger(), "Closing the bag file: %s", triggered_writer.get_storage_options().uri.c_str());
-        triggered_writer.close(no_triggers);
-
-        // @todo: Remove the following after appropriate testing of above method.
-        /* Crop is simply a rewrite with new start/end timestamp information.
-        Only supported with ROS2 >= Jazzy  
-        rosbag2_storage::StorageOptions rewrite_bag_options = last_bag_options_;
-        rewrite_bag_options.uri = last_bag_options_.uri + "_triggered";
-        rewrite_bag_options.start_time_ns = std::max(crop_points_.first, bag_start_time);
-        rewrite_bag_options.end_time_ns = std::min(crop_points_.second, bag_end_time);
-        rosbag2_transport::RecordOptions record_options;
-        record_options.all_topics = true;
-        rosbag2_transport::bag_rewrite({last_bag_options_}, {std::make_pair(rewrite_bag_options, record_options)});**/
         
     }
 
