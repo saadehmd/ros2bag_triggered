@@ -8,8 +8,6 @@
 #include <ament_index_cpp/get_package_prefix.hpp>
 #include <ros2bag_triggered/triggered_recorder_node.hpp>
 #include <memory>
-#include <iostream>
-#include <fstream>
 #include <chrono>
 #include <variant>
 #include <unordered_map>
@@ -58,7 +56,7 @@ public:
 
     ~TriggeredRecorderNode()
     {
-        crop();
+        reset();
     }
 
 
@@ -94,7 +92,7 @@ private:
             std::chrono::duration<double>(get_writer_impl().get_config().trigger_buffer_duration), 
             [this]() 
             { 
-                crop();
+                reset();
                 //TODO: Test whether the 'create_topic()' calls are necessary after the bag is closed and reopened with new storage options.
                 reset_writer(); 
             }
@@ -107,13 +105,8 @@ private:
         RCLCPP_INFO(get_logger(), "Resetting the writer...");
         rosbag2_storage::StorageOptions storage_options;
         auto stamp = get_clock()->now().nanoseconds();
-        auto& triggered_writer = get_writer_impl();
-        auto last_storage_options = triggered_writer.get_storage_options();
-        last_storage_options.uri = triggered_writer.get_config().bag_root_dir + '/' + std::to_string(stamp);
-
-        writer_.open(last_storage_options);
-        RCLCPP_INFO(get_logger(), "Opened new bag file: %s", last_storage_options.uri.c_str());
-
+        writer_.open(std::to_string(stamp));
+        
         //Create all topics immediately after creating the new writer
         for (const auto& topic : topics_config_)
         {
@@ -127,10 +120,9 @@ private:
             topic_meta.serialization_format = serialization_format;
             writer_.create_topic(topic_meta);
         }
-
     }
 
-    void crop()
+    void reset()
     {   
         auto& triggered_writer = get_writer_impl();
         auto base_folder = triggered_writer.get_base_folder();
@@ -150,38 +142,10 @@ private:
             std::visit(resetTrigger, trigger.second);
         }
 
-        bool no_triggers = crop_points_.first < 0 || crop_points_.second < 0;
-        if (no_triggers)
-        {
-            RCLCPP_WARN(get_logger(), "No triggers were detected. Deleting the bag: %s.", base_folder.c_str());     
-        }
-        else
-        {
-            triggered_writer.set_crop_points(crop_points_.first, crop_points_.second);
-        }
-
+        triggered_writer.set_crop_points(crop_points_.first, crop_points_.second);
         crop_points_ = std::make_pair(-1, -1); //Reset crop points for the next bag.
-
-        /** Closing checks the time-range of messages before writing and discards if messages are out of this range.*/
-        RCLCPP_INFO(get_logger(), "Closing the bag file: %s", base_folder.c_str());
         writer_.close();
-
-        if (write_trigger_stats && !no_triggers)
-        {   
-            auto trigger_stats_file = triggered_writer.get_base_folder() + "_triggered/trigger_stats.txt";
-            std::ofstream stats_file(trigger_stats_file);
-            if (stats_file.is_open())
-            {
-                RCLCPP_INFO(get_logger(), "Writing trigger stats to file: %s", (trigger_stats_file).c_str());
-                stats_file << trigger_stats;
-            }
-            else
-            {
-                RCLCPP_ERROR(get_logger(), "Failed to open trigger stats file: %s", (trigger_stats_file).c_str());
-            }
-            stats_file.close();
-        }
-        
+        triggered_writer.write_trigger_stats(trigger_stats);   
     }
 
     void create_subscriptions()
@@ -299,7 +263,7 @@ private:
         return triggered_writer;
     }
 
-    rosbag2_cpp::Writer writer_{/*writer_impl=*/std::make_unique<ros2bag_triggered::TriggeredWriter>()};
+    rosbag2_cpp::Writer writer_{/*writer_impl=*/std::make_unique<ros2bag_triggered::TriggeredWriter>(get_logger())};
     std::vector<rclcpp::GenericSubscription::SharedPtr> subscriptions_;
     std::unordered_map<std::string, TriggerVariant> triggers_;
     YAML::Node topics_config_;

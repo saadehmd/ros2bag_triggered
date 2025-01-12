@@ -22,15 +22,19 @@ public:
         std::string bag_root_dir;
         double trigger_buffer_duration;
         double crop_gap;
+        bool bag_cropping;
         bool write_trigger_stats;
     };
 
-    TriggeredWriter() : rosbag2_cpp::writers::SequentialWriter() {}
+    TriggeredWriter(const rclcpp::Logger& logger) 
+    : rosbag2_cpp::writers::SequentialWriter(),
+      logger_(logger) {}
     ~TriggeredWriter() = default;
 
     void initialize(const std::optional<Config>& writer_config);
     void close();
     void open(const rosbag2_storage::StorageOptions& storage_options, const rosbag2_cpp::ConverterOptions& converter_options);
+    void write_trigger_stats(const std::string& trigger_stats);
 
     /**
      * @brief Set the cropping time range of the bag file.
@@ -52,13 +56,20 @@ public:
 
     std::string get_base_folder() const
     {
-        return base_folder_;
+        return config_.bag_root_dir + "/" + bag_name_;
+    }
+
+    std::string get_bag_name() const
+    {
+        return bag_name_;
     }
 
 private:
     Config config_;
-    std::string base_folder_;
+    std::string bag_name_;
     std::optional<rosbag2_storage::StorageOptions> rewrite_options_;
+    bool is_triggered_;
+    rclcpp::Logger logger_;
 
 };
 

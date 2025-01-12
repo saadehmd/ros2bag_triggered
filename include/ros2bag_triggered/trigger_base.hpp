@@ -47,7 +47,8 @@ public:
         std::string stats = "Trigger Stats for " + getName() + ":\n";
         for (const auto& trigger : all_triggers_)
         {
-            stats += "\n\tTriggered from: " + std::to_string(trigger.first) + " to " + std::to_string(trigger.second) + "\n";
+            auto seconds = std::to_string(rclcpp::Duration(std::chrono::nanoseconds(trigger.second - trigger.first)).seconds());
+            stats += "\n\tTriggered from: " + std::to_string(trigger.first) + " to " + std::to_string(trigger.second) + " [" + seconds + " sec.s]\n";
         }
         stats += "\n\t=======================================================================================\n";
         return stats;
