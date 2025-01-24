@@ -15,7 +15,6 @@ void ZoneTriggerWithPoseStamped::fromYaml(const YAML::Node& node)
     // on problems, parsing the configuration from yaml. Including missing key-value pairs or wrong access-types.
     try
     {
-        enabled_ = node["enabled"].as<bool>();
         persistance_duration_ =  rclcpp::Duration::from_seconds(node["persistance_duration"].as<double>());
         use_msg_stamp_ = node["use_msg_stamp"].as<bool>();
         trigger_zone_.x_min = node["trigger_zone"]["min_x"].as<double>();

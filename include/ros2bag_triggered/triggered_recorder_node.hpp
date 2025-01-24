@@ -40,6 +40,7 @@ auto configureTrigger = [](auto& trigger, const YAML::Node& config)
     }
     using TriggerT = typename std::remove_reference<decltype(trigger)>::type;
     trigger = TriggerT(config);
+    trigger.setEnabled(true);
 };
 
 
