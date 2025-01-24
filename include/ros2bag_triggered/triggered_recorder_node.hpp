@@ -113,6 +113,12 @@ private:
             auto topic_name = topic.first.as<std::string>();
             auto topic_cfg  = topic.second;
             auto msg_type = topic_cfg["msg_type"].as<std::string>();
+            auto is_recorded = topic_cfg["record"] ? topic_cfg["record"].as<bool>() : true;
+
+            if(!is_recorded)
+            {
+                continue;
+            }
             std::string serialization_format = "cdr";
             auto topic_meta = rosbag2_storage::TopicMetadata();
             topic_meta.name = topic_name;
@@ -155,6 +161,7 @@ private:
             auto topic_name = topic.first.as<std::string>();
             auto topic_cfg  = topic.second;
             auto msg_type = topic_cfg["msg_type"].as<std::string>();
+            auto is_recorded = topic_cfg["record"] ? topic_cfg["record"].as<bool>() : true;
             
             std::string triggers_debug_info = "Subscribed to topic: " + topic_name + " Msg type: " +  msg_type + " with triggers: [";
             std::vector<std::reference_wrapper<TriggerVariant>> triggers;
@@ -197,6 +204,11 @@ private:
                 }
             }
 
+            if(!is_recorded && triggers.empty())
+            {
+                RCLCPP_WARN(get_logger(), "Topic %s is not recorded and has no triggers. Skipping...", topic_name.c_str());
+                continue;
+            }
             std::function<void(std::shared_ptr<rclcpp::SerializedMessage> msg)> callback = 
                         std::bind(&TriggeredRecorderNode::topic_callback, this, std::placeholders::_1, topic_name, msg_type, triggers);            
             subscriptions_.push_back(create_generic_subscription(topic_name, msg_type, rclcpp::QoS(10), callback));
