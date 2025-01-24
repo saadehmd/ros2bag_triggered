@@ -85,6 +85,10 @@ namespace ros2bag_triggered
         else
         {   
             RCLCPP_WARN(logger_, "Cropping is disabled or not needed. Moving the triggered bag to: %s ...", triggered_bag_path.c_str());
+            if (!std::filesystem::exists(config_.bag_root_dir + "/triggered_bags/" ))
+            {
+                std::filesystem::create_directories(config_.bag_root_dir + "/triggered_bags/" );
+            }
             std::filesystem::rename(base_folder, triggered_bag_path);
         }
     }

@@ -21,7 +21,13 @@ public:
       clock_(clock),
       logger_(logger),
       use_msg_stamp_(use_msg_stamp) 
-    {}
+    {
+        if (!use_msg_stamp_ && !clock_)
+        {
+            RCLCPP_ERROR(*logger_, "No time source provided for the trigger %s.", getName().c_str());
+            throw std::runtime_error("Missing time-source for the trigger.");
+        }
+    }
 
     TriggerBase() = default;
     virtual ~TriggerBase() = default;
@@ -73,12 +79,7 @@ public:
     bool onSurge(const typename T::SharedPtr msg)
     {   
         if(!isEnabled()) return false;
-
-        if (!use_msg_stamp_ && !clock_)
-        {
-            throw std::runtime_error("No stamps on the msgs and no clock provided");
-        }
-        auto stamp = use_msg_stamp_ && msg ? GetTimeStamp<T>(msg) : clock_->now();
+        auto stamp = msg ? GetTimeStamp<T>(msg) : rclcpp::Time(last_stamp_);
         auto trigger_duration = last_stamp_ - first_stamp_;
         bool negative_edge = false;
 
