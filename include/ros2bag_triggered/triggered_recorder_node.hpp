@@ -7,6 +7,8 @@
 #include <ros2bag_triggered/triggered_writer.hpp>
 #include <ament_index_cpp/get_package_prefix.hpp>
 #include <ros2bag_triggered/triggered_recorder_node.hpp>
+#include <ros2bag_triggered/trigger_variant_visitors.hpp>
+
 #include <memory>
 #include <chrono>
 #include <variant>
@@ -14,34 +16,8 @@
 #include <yaml-cpp/yaml.h>
 #include <yaml-cpp/exceptions.h>
 
-
 namespace ros2bag_triggered
 {
-
-//Visitors.
-auto resetTrigger = [](auto& trigger) {trigger.reset();};
-auto isUsingMsgStamps = [](auto& trigger) -> bool {return trigger.isUsingMsgStamps();};
-auto setClock = [](auto& trigger, const rclcpp::Clock::SharedPtr& clock){trigger.setClock(clock);};
-auto setLogger = [](auto& trigger, const std::shared_ptr<rclcpp::Logger>& logger){trigger.setLogger(logger);};
-auto getAllTriggers = [](auto& trigger) -> std::vector<std::pair<uint64_t, uint64_t>> {return trigger.getAllTriggers();};
-auto getMsgType = [](auto& trigger) -> std::string {return trigger.getMsgType();};
-auto getTriggerInfo = [](auto& trigger) -> std::string {return trigger.getTriggerInfo();};
-auto getTriggerStats = [](auto& trigger) -> std::string {return trigger.getTriggerStats();};
-auto onSurge = [](auto& trigger, const std::shared_ptr<rclcpp::SerializedMessage>& serialized_msg) -> bool 
-{   
-    return trigger.onSurgeSerialized(serialized_msg);
-};
-auto configureTrigger = [](auto& trigger, const YAML::Node& config)
-{   
-    if (trigger.isEnabled())
-    {   
-        // @ToDo: Support registering triggers of the same type, to different topics.
-        throw std::runtime_error("Trigger type: " + trigger.getName() + " is already registered to a topic. Registering single trigger-type to multiple topics is not yet supported.");
-    }
-    using TriggerT = typename std::remove_reference<decltype(trigger)>::type;
-    trigger = TriggerT(config);
-    trigger.setEnabled(true);
-};
 
 
 template<typename TriggerVariant>
@@ -59,7 +35,6 @@ public:
     {
         reset();
     }
-
 
 private:
 
@@ -177,13 +152,7 @@ private:
                     try
                     {
                         auto& trigger = triggers_.at(trigger_type);
-                        std::visit([&triggers_info](auto& arg){configureTrigger(arg, triggers_info);}, trigger);
-                        if(!std::visit(isUsingMsgStamps, trigger))
-                        {
-                            std::visit([&](auto& arg){setClock(arg, get_clock());}, trigger);
-                        }
-                        std::visit([&](auto& arg){setLogger(arg, std::make_shared<rclcpp::Logger>(get_logger()));}, trigger);
-                        
+                        std::visit([&triggers_info](auto& arg){configureTrigger(arg, triggers_info);}, trigger);                     
                         triggers_debug_info += std::visit(getTriggerInfo, trigger);
                         triggers.push_back(trigger);
                     }
@@ -256,8 +225,11 @@ private:
     {   
         (([&]() {
             using TriggerT = std::variant_alternative_t<Is, TriggerVariant>;
-            auto temp = TriggerT{};
-            triggers_[temp.getName()] = std::move(temp);
+            if constexpr (!std::is_same_v<TriggerT, std::monostate>)
+            {
+                auto temp = TriggerT{/*persistance_duration=*/0, get_clock(), std::make_shared<rclcpp::Logger>(get_logger()), /*use_msg_stamp=*/true};
+                triggers_[temp.getName()] = std::move(temp);
+            }         
         }()), ...);
 
         std::string triggers_debug_info = "Recorder Node initialized with following trigger types:-";

@@ -34,8 +34,6 @@ add_library(${PROJECT_NAME} SHARED
 
 add_executable(example_node examples/main.cpp)
 
-target_link_libraries(example_node ${PROJECT_NAME})
-
 set(ament_cmake_dependencies
   rclcpp
   rosbag2_cpp

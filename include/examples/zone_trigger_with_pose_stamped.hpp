@@ -20,17 +20,17 @@ public:
         double z_max{0};
     };
 
-    ZoneTriggerWithPoseStamped(uint64_t persistance_duration, const rclcpp::Clock::SharedPtr clock, const std::shared_ptr<rclcpp::Logger> logger, bool use_msg_stamp, const TriggerZone& trigger_zone) 
-    : TriggerBase(persistance_duration, clock, logger, use_msg_stamp),
-      trigger_zone_(trigger_zone) {}
+    ZoneTriggerWithPoseStamped(uint64_t persistance_duration, const rclcpp::Clock::SharedPtr clock, const std::shared_ptr<rclcpp::Logger> logger, bool use_msg_stamp) 
+    : TriggerBase(persistance_duration, clock, logger, use_msg_stamp){}
 
-    ZoneTriggerWithPoseStamped(const YAML::Node& node)
-    {
-        fromYaml(node);
-    }
-
-    ZoneTriggerWithPoseStamped() = default;
+    ZoneTriggerWithPoseStamped() = delete;
     ~ZoneTriggerWithPoseStamped() override = default;
+
+    ZoneTriggerWithPoseStamped(const ZoneTriggerWithPoseStamped&) = delete;
+    ZoneTriggerWithPoseStamped& operator=(const ZoneTriggerWithPoseStamped&) = delete;
+
+    ZoneTriggerWithPoseStamped(ZoneTriggerWithPoseStamped&&) = default;
+    ZoneTriggerWithPoseStamped& operator=(ZoneTriggerWithPoseStamped&&) = default;
 
     bool isTriggered(const geometry_msgs::msg::PoseStamped::SharedPtr msg) const override;
 
@@ -38,9 +38,10 @@ public:
     {
         return "ZoneTriggerWithPoseStamped";
     }
+
+    void fromYaml(const YAML::Node& node) override;
     
 protected:
-    void fromYaml(const YAML::Node& node) override;
     TriggerZone trigger_zone_;
 };
 

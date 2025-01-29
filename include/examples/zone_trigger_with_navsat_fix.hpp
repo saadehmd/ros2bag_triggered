@@ -21,17 +21,17 @@ public:
         double altitude_max{0};
     };
 
-    ZoneTriggerWithNavSatFix(uint64_t persistance_duration, const rclcpp::Clock::SharedPtr clock, const std::shared_ptr<rclcpp::Logger> logger, bool use_msg_stamp, const TriggerZone& trigger_zone) 
-    : TriggerBase(persistance_duration, clock, logger, use_msg_stamp),
-      trigger_zone_(trigger_zone) {}
+    ZoneTriggerWithNavSatFix(uint64_t persistance_duration, const rclcpp::Clock::SharedPtr clock, const std::shared_ptr<rclcpp::Logger> logger, bool use_msg_stamp) 
+    : TriggerBase(persistance_duration, clock, logger, use_msg_stamp) {}
 
-    ZoneTriggerWithNavSatFix(const YAML::Node& node)
-    {
-        fromYaml(node);
-    }
-
-    ZoneTriggerWithNavSatFix() = default;
+    ZoneTriggerWithNavSatFix() = delete;
     ~ZoneTriggerWithNavSatFix() override = default;
+
+    ZoneTriggerWithNavSatFix(const ZoneTriggerWithNavSatFix&) = delete;
+    ZoneTriggerWithNavSatFix& operator=(const ZoneTriggerWithNavSatFix&) = delete;
+
+    ZoneTriggerWithNavSatFix(ZoneTriggerWithNavSatFix&&) = default;
+    ZoneTriggerWithNavSatFix& operator=(ZoneTriggerWithNavSatFix&&) = default;
     
     bool isTriggered(const sensor_msgs::msg::NavSatFix::SharedPtr msg) const override;
 
@@ -40,8 +40,9 @@ public:
         return "ZoneTriggerWithNavSatFix";
     }
     
-protected:
     void fromYaml(const YAML::Node& node) override;
+
+protected:
     TriggerZone trigger_zone_;
 };
     

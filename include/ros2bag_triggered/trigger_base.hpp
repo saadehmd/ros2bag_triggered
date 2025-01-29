@@ -22,15 +22,20 @@ public:
       logger_(logger),
       use_msg_stamp_(use_msg_stamp) 
     {
-        if (!use_msg_stamp_ && !clock_)
+        if (!(use_msg_stamp_ && type_traits::HasHeader<T>::value) && !clock_)
         {
-            RCLCPP_ERROR(*logger_, "No time source provided for the trigger %s.", getName().c_str());
             throw std::runtime_error("Missing time-source for the trigger.");
         }
     }
 
-    TriggerBase() = default;
+    TriggerBase() = delete;
     virtual ~TriggerBase() = default;
+    TriggerBase(const TriggerBase&) = delete;
+    TriggerBase& operator=(const TriggerBase&) = delete;
+
+    TriggerBase(TriggerBase&&) = default;
+    TriggerBase& operator=(TriggerBase&&) = default;
+
     virtual bool isTriggered(const typename T::SharedPtr msg) const = 0;
     virtual std::string getName() const = 0;
     std::string getMsgType() const
@@ -79,7 +84,13 @@ public:
     bool onSurge(const typename T::SharedPtr msg)
     {   
         if(!isEnabled()) return false;
-        auto stamp = msg ? GetTimeStamp<T>(msg) : rclcpp::Time(last_stamp_);
+
+        if(use_msg_stamp_ && !type_traits::HasHeader<T>::value)
+        {
+            RCLCPP_WARN_THROTTLE(*logger_, *clock_, 10000, "Trigger: %s is configured to use timestamps from the header but the underlying message-type(%s) is headerless. Using the clock time on this trigger!!", getName().c_str(), getMsgType().c_str());
+        }
+
+        auto stamp = GetTimeStamp<T>(msg);
         auto trigger_duration = last_stamp_ - first_stamp_;
         bool negative_edge = false;
 
@@ -163,7 +174,11 @@ protected:
     typename std::enable_if<type_traits::HasHeader<MsgT>::value, rclcpp::Time>::type
     GetTimeStamp(const typename T::SharedPtr msg) 
     {
-        return rclcpp::Time(msg->header.stamp);
+        if (msg && use_msg_stamp_)
+        {
+            return rclcpp::Time(msg->header.stamp);
+        }
+        return clock_->now();
     }
 
     // Utility function: Return current time if message has no header

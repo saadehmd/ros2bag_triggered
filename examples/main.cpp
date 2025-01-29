@@ -5,16 +5,13 @@
 #include <examples/zone_trigger_with_navsat_fix.hpp>
 #include <ros2bag_triggered/triggered_recorder_node.hpp>
 #include <std_msgs/msg/string.hpp>
+#include <string>
 
 using namespace ros2bag_triggered;
 
 // std::monostate should be used as the first type, to represent the absence of a value in a variant.
-/*using MyVariant = std::variant<std::monostate, 
-                               examples::BatteryHealthTrigger, 
-                               examples::NavSatInvalidFixTrigger, 
-                               examples::ZoneTriggerWithPoseStamped>;*/
 
-using MyVariant = std::variant<examples::ZoneTriggerWithPoseStamped, examples::ZoneTriggerWithNavSatFix, examples::NavSatInvalidFixTrigger, examples::BatteryHealthTrigger>;
+using MyVariant = std::variant<std::monostate, examples::ZoneTriggerWithPoseStamped, examples::ZoneTriggerWithNavSatFix, examples::NavSatInvalidFixTrigger, examples::BatteryHealthTrigger>;
 
 int main(int argc, char** argv) 
 {
