@@ -81,50 +81,7 @@ public:
         return onSurge(msg);
     }
 
-    bool onSurge(const typename T::SharedPtr msg)
-    {   
-        if(!isEnabled()) return false;
-
-        if(use_msg_stamp_ && !type_traits::HasHeader<T>::value)
-        {
-            RCLCPP_WARN_THROTTLE(*logger_, *clock_, 10000, "Trigger: %s is configured to use timestamps from the header but the underlying message-type(%s) is headerless. Using the clock time on this trigger!!", getName().c_str(), getMsgType().c_str());
-        }
-
-        auto stamp = GetTimeStamp<T>(msg);
-        auto trigger_duration = last_stamp_ - first_stamp_;
-        bool negative_edge = false;
-
-        if (msg && isTriggered(msg))
-        {
-            if (first_stamp_ == 0)
-            {
-                RCLCPP_DEBUG(*logger_, "%s positive edge", getName().c_str());
-                first_stamp_ = stamp.nanoseconds();
-            }
-
-            last_stamp_ = stamp.nanoseconds();
-        }
-        else if (trigger_duration >= persistance_duration_.nanoseconds())
-        {
-            RCLCPP_DEBUG(*logger_, "%s negative edge", getName().c_str());
-            RCLCPP_INFO(
-                *logger_, 
-                "%s Last Persistent trigger duration: %f seconds", 
-                getName().c_str(), 
-                rclcpp::Duration(std::chrono::nanoseconds(trigger_duration)).seconds()
-            );
-            all_triggers_.push_back(std::make_pair(first_stamp_, last_stamp_));
-            negative_edge = true;
-            first_stamp_ = 0;
-            last_stamp_ = 0;
-        }
-        else
-        {
-            first_stamp_ = 0;
-            last_stamp_ = 0;
-        }
-        return negative_edge;
-    }
+    
 
     std::vector<std::pair<uint64_t, uint64_t>> getAllTriggers() const
     {
@@ -155,7 +112,7 @@ public:
 
     bool isEnabled()
     {
-        return enabled_ && persistance_duration_.nanoseconds() > 0;
+        return enabled_;
     }
 
     void setEnabled(bool enabled)
@@ -164,6 +121,46 @@ public:
     }
     
 protected:
+
+    bool onSurge(const typename T::SharedPtr msg)
+    {   
+        if(!isEnabled()) return false;
+
+        if(use_msg_stamp_ && !type_traits::HasHeader<T>::value)
+        {
+            RCLCPP_WARN_THROTTLE(*logger_, *clock_, 10000, "Trigger: %s is configured to use timestamps from the header but the underlying message-type(%s) is headerless. Using the clock time on this trigger!!", getName().c_str(), getMsgType().c_str());
+        }
+
+        auto stamp = GetTimeStamp<T>(msg);
+        auto trigger_duration = last_stamp_ - first_stamp_;
+        bool negative_edge = false;
+        
+        if (msg && isTriggered(msg))
+        {
+            if (first_stamp_ == 0)
+            {
+                RCLCPP_DEBUG(*logger_, "%s positive edge", getName().c_str());
+                first_stamp_ = stamp.nanoseconds();
+            }
+
+            last_stamp_ = stamp.nanoseconds();
+        }
+        else if (trigger_duration >= persistance_duration_.nanoseconds())
+        {
+            RCLCPP_DEBUG(*logger_, "%s negative edge", getName().c_str());
+            RCLCPP_INFO(*logger_, "%s Last Persistent trigger duration: %f seconds", getName().c_str(), rclcpp::Duration(std::chrono::nanoseconds(trigger_duration)).seconds());
+            all_triggers_.push_back(std::make_pair(first_stamp_, last_stamp_));
+            negative_edge = true;
+            first_stamp_ = 0;
+            last_stamp_ = 0;
+        }
+        else
+        {
+            first_stamp_ = 0;
+            last_stamp_ = 0;
+        }
+        return negative_edge;
+    }
 
     // The interface dictates that derived classes should implement this method to load the trigger config from a YAML node.
     // The method is protected and only accessible from the dedicated YAML-based constructor, to protect the encapsulation.

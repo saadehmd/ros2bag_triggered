@@ -1,3 +1,8 @@
+#ifndef ROS2BAG_TRIGGERED_TRIGGER_VARIANT_VISITORS_HPP
+#define ROS2BAG_TRIGGERED_TRIGGER_VARIANT_VISITORS_HPP
+
+#include <variant>
+
 namespace ros2bag_triggered {
 // Visitors
 auto resetTrigger = [](auto& trigger) { 
@@ -43,6 +48,7 @@ auto onSurge = [](auto& trigger, const std::shared_ptr<rclcpp::SerializedMessage
 
 auto configureTrigger = [](auto& trigger, const YAML::Node& config) {   
     if constexpr (!std::is_same_v<std::decay_t<decltype(trigger)>, std::monostate>) {
+        // @ToDo: Support registering triggers of the same type, to different topics.
         if (trigger.isEnabled()) {   
             throw std::runtime_error("Trigger type: " + trigger.getName() + 
                                      " is already registered to a topic. Registering single trigger-type to multiple topics is not yet supported.");
@@ -54,3 +60,5 @@ auto configureTrigger = [](auto& trigger, const YAML::Node& config) {
 };
 
 }; // namespace ros2bag_triggered
+
+#endif // ROS2BAG_TRIGGERED_TRIGGER_VARIANT_VISITORS_HPP

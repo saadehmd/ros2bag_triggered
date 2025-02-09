@@ -11,7 +11,6 @@
 
 #include <memory>
 #include <chrono>
-#include <variant>
 #include <unordered_map>
 #include <yaml-cpp/yaml.h>
 #include <yaml-cpp/exceptions.h>

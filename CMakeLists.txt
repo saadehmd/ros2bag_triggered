@@ -95,12 +95,25 @@ install(
 #ament_export_libraries(${PROJECT_NAME} ${PROJECT_NAME}_examples)
 #ament_export_dependencies(rclcpp rosbag2_cpp rosbag2_transport rosbag2 rosgraph_msgs geometry_msgs sensor_msgs)
 
+set(BUILD_TESTING ON)
 if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
+  #find_package(ament_lint_auto REQUIRED)
+  find_package(ament_cmake_gtest REQUIRED)
 
-  set(ament_cmake_copyright_FOUND TRUE)
-  set(ament_cmake_cpplint_FOUND TRUE)
-  ament_lint_auto_find_test_dependencies()
+  #set(ament_cmake_copyright_FOUND TRUE)
+  #set(ament_cmake_cpplint_FOUND TRUE)
+  #ament_lint_auto_find_test_dependencies()
+
+
+  set(TEST_SOURCE
+    test/trigger_base_tests.cpp)
+
+  ament_add_gtest(trigger_base_tests test/trigger_base_tests.cpp)
+  set_tests_properties(trigger_base_tests PROPERTIES TIMEOUT 100)
+  target_include_directories(trigger_base_tests PRIVATE include test)
+  target_include_directories(trigger_base_tests SYSTEM PRIVATE ${GTEST_INCLUDE_DIRS})
+  target_link_libraries(trigger_base_tests  ${PROJECT_NAME} ${PROJECT_NAME}_examples)
+
 endif()
 
 ament_package()
