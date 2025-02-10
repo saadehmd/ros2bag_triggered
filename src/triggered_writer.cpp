@@ -33,17 +33,9 @@ namespace ros2bag_triggered
         }
     }
 
-    void TriggeredWriter::initialize(const std::optional<TriggeredWriter::Config>& config)
+    void TriggeredWriter::initialize(const std::filesystem::path& writer_config)
     {
-        auto prefix_path = ament_index_cpp::get_package_prefix("ros2bag_triggered");
-        
-        if (config.has_value())
-        {
-            config_ = config.value();
-            return;
-        }
-
-        YAML::Node writer_cfg = YAML::LoadFile(prefix_path + "/config/config.yaml");
+        YAML::Node writer_cfg = YAML::LoadFile(writer_config);
 
         storage_options_.storage_id = rosbag2_storage::get_default_storage_id();
         storage_options_.max_bagfile_size = writer_cfg["max_bagfile_size"].as<uint64_t>();

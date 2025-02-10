@@ -1,0 +1,26 @@
+
+#The trigger 'type' field should have the exact name that each trigger-class implements in it's interface.
+#'record' field under each topic is used to enable/disable recording of that topic. By default, all topics are recorded, if this field is not present.
+
+/robot/battery_state:
+  msg_type: sensor_msgs/msg/BatteryState
+  triggers:
+    - type: batteryHealthTrigger
+      persistance_duration: 10.0
+      use_msg_stamp: true
+
+/empty_msg:
+  msg_type: std_msgs/msg/Bool
+  record: False
+  triggers:
+    - type: emptyTrigger
+      persistance_duration: 10.0
+      use_msg_stamp: False
+
+/robot/pose:
+  msg_type: geometry_msgs/msg/PoseStamped
+
+
+/robot/odometry:
+  record: False
+  msg_type: nav_msgs/msg/Odometry

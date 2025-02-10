@@ -31,7 +31,7 @@ public:
       logger_(logger) {}
     ~TriggeredWriter() = default;
 
-    void initialize(const std::optional<Config>& writer_config);
+    void initialize(const std::filesystem::path& writer_config);
     void close();
     void open(const rosbag2_storage::StorageOptions& storage_options, const rosbag2_cpp::ConverterOptions& converter_options);
     void write_trigger_stats(const std::string& trigger_stats);
@@ -62,6 +62,15 @@ public:
     std::string get_bag_name() const
     {
         return bag_name_;
+    }
+
+    bool is_open() const
+    {
+        return storage_ != nullptr;
+    }
+    size_t get_topic_count() const
+    {
+        return topics_names_to_info_.size();
     }
 
 private:

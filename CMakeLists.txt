@@ -90,6 +90,11 @@ install(
   DESTINATION config
 )
 
+install(
+  DIRECTORY test/configs/
+  DESTINATION test/configs
+)
+
 #ament_export_include_directories(include)
 #ament_export_targets(export_${PROJECT_NAME} export_${PROJECT_NAME}_examples HAS_LIBRARY_TARGET)
 #ament_export_libraries(${PROJECT_NAME} ${PROJECT_NAME}_examples)
@@ -106,9 +111,10 @@ if(BUILD_TESTING)
 
 
   set(TEST_SOURCE
-    test/trigger_base_tests.cpp)
+    #test/trigger_base_tests.cpp
+    test/triggered_recorder_node_tests.cpp)
 
-  ament_add_gtest(trigger_base_tests test/trigger_base_tests.cpp)
+  ament_add_gtest(trigger_base_tests test/triggered_recorder_node_tests.cpp)
   set_tests_properties(trigger_base_tests PROPERTIES TIMEOUT 100)
   target_include_directories(trigger_base_tests PRIVATE include test)
   target_include_directories(trigger_base_tests SYSTEM PRIVATE ${GTEST_INCLUDE_DIRS})

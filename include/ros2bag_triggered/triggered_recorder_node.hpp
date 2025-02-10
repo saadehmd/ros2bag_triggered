@@ -22,12 +22,15 @@ namespace ros2bag_triggered
 template<typename TriggerVariant>
 class TriggeredRecorderNode : public rclcpp::Node
 {
+    static_assert(std::is_same_v<std::variant_alternative_t<0, TriggerVariant>, std::monostate>, 
+        "The first type held by TriggerVariant must be std::monostate");
 public:
     TriggeredRecorderNode(std::string&& node_name = "triggered_recorder_node", 
-                          const rclcpp::NodeOptions& node_options = rclcpp::NodeOptions())
+                          const rclcpp::NodeOptions& node_options = rclcpp::NodeOptions(),
+                          const std::filesystem::path& config_dir = "")
         : rclcpp::Node(std::move(node_name), node_options) 
     {
-        initialize(std::nullopt);
+        initialize(config_dir);
     }
 
     ~TriggeredRecorderNode()
@@ -35,16 +38,32 @@ public:
         reset();
     }
 
-private:
+protected:
 
-    void initialize(const std::optional<ros2bag_triggered::TriggeredWriter::Config>& config)
+    void initialize(const std::filesystem::path& config_dir)
     {
-        RCLCPP_INFO(get_logger(), "Initializing Triggered Recorder Node");
-        auto prefix_path = ament_index_cpp::get_package_prefix("ros2bag_triggered");
+        
+        std::filesystem::path prefix_path = config_dir;
+        if(config_dir.empty())
+        {
+            RCLCPP_WARN(get_logger(), "Config directory path not provided. Using default config directory.");
+            prefix_path = ament_index_cpp::get_package_prefix("ros2bag_triggered") + "/config";
+        }
+        
+        else if(!std::filesystem::exists(config_dir) || !std::filesystem::is_directory(config_dir))
+        {
+            RCLCPP_ERROR(get_logger(), "Invalid config directory path: %s", config_dir.c_str());
+            throw std::runtime_error("Invalid config directory path.");
+        }
+
+        RCLCPP_INFO(get_logger(), "Initializing Triggered Recorder Node from config directory: %s", prefix_path.c_str());
+
+        auto topic_config = prefix_path / "topic_config.yaml";
+        auto writer_config  = prefix_path / "writer_config.yaml";
         try
         {
-            topics_config_ = YAML::LoadFile(prefix_path + "/config/topic_config.yaml");
-            get_writer_impl().initialize(config);
+            topics_config_ = YAML::LoadFile(topic_config);
+            get_writer_impl().initialize(writer_config);
         }
         catch(YAML::BadFile& exc)
         {
@@ -163,7 +182,7 @@ private:
                         {
                             RCLCPP_ERROR(get_logger(), "- %s", key.c_str());
                         }
-                        throw e;
+                        throw std::out_of_range("Configured trigger types were not found.");
                     }
                     catch(const std::runtime_error& e)
                     {

@@ -16,8 +16,8 @@ public:
     BatteryHealthTrigger() = delete;
     ~BatteryHealthTrigger() override = default;
 
-    BatteryHealthTrigger(const BatteryHealthTrigger&) = delete;
-    BatteryHealthTrigger& operator=(const BatteryHealthTrigger&) = delete;
+    BatteryHealthTrigger(const BatteryHealthTrigger&) = default;
+    BatteryHealthTrigger& operator=(const BatteryHealthTrigger&) = default;
 
     BatteryHealthTrigger(BatteryHealthTrigger&&) = default;
     BatteryHealthTrigger& operator=(BatteryHealthTrigger&&) = default; 

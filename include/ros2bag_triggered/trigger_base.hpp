@@ -30,8 +30,8 @@ public:
 
     TriggerBase() = delete;
     virtual ~TriggerBase() = default;
-    TriggerBase(const TriggerBase&) = delete;
-    TriggerBase& operator=(const TriggerBase&) = delete;
+    TriggerBase(const TriggerBase&) = default;
+    TriggerBase& operator=(const TriggerBase&) = default;
 
     TriggerBase(TriggerBase&&) = default;
     TriggerBase& operator=(TriggerBase&&) = default;
@@ -105,12 +105,12 @@ public:
         logger_ = logger;
     }
 
-    bool isUsingMsgStamps() 
+    bool isUsingMsgStamps() const
     {
         return use_msg_stamp_;
     }
 
-    bool isEnabled()
+    bool isEnabled() const
     {
         return enabled_;
     }

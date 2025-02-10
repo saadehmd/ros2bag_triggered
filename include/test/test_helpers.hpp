@@ -16,8 +16,8 @@ public:
     EmptyTrigger() = delete;
     ~EmptyTrigger() override = default;
 
-    EmptyTrigger(const EmptyTrigger&) = delete;
-    EmptyTrigger& operator=(const EmptyTrigger&) = delete;
+    EmptyTrigger(const EmptyTrigger&) = default;
+    EmptyTrigger& operator=(const EmptyTrigger&) = default;
     EmptyTrigger(EmptyTrigger&&) = default;
     EmptyTrigger& operator=(EmptyTrigger&&) = default;
     

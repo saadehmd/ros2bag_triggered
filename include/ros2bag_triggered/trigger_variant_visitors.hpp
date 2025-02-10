@@ -11,6 +11,13 @@ auto resetTrigger = [](auto& trigger) {
     }
 };
 
+auto isTriggerEnabled = [](auto& trigger) -> bool { 
+    if constexpr (!std::is_same_v<std::decay_t<decltype(trigger)>, std::monostate>) {
+        return trigger.isEnabled();
+    }
+    return false; // Default behavior for monostate
+};
+
 auto getAllTriggers = [](auto& trigger) -> std::vector<std::pair<uint64_t, uint64_t>> { 
     if constexpr (!std::is_same_v<std::decay_t<decltype(trigger)>, std::monostate>) {
         return trigger.getAllTriggers();
