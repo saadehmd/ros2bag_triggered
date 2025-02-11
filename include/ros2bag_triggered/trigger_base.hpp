@@ -30,11 +30,11 @@ public:
 
     TriggerBase() = delete;
     virtual ~TriggerBase() = default;
-    TriggerBase(const TriggerBase&) = default;
+    /*TriggerBase(const TriggerBase&) = default;
     TriggerBase& operator=(const TriggerBase&) = default;
 
     TriggerBase(TriggerBase&&) = default;
-    TriggerBase& operator=(TriggerBase&&) = default;
+    TriggerBase& operator=(TriggerBase&&) = default;*/
 
     virtual bool isTriggered(const typename T::SharedPtr msg) const = 0;
     virtual std::string getName() const = 0;

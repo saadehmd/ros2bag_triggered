@@ -26,12 +26,6 @@ public:
     ZoneTriggerWithPoseStamped() = delete;
     ~ZoneTriggerWithPoseStamped() override = default;
 
-    ZoneTriggerWithPoseStamped(const ZoneTriggerWithPoseStamped&) = delete;
-    ZoneTriggerWithPoseStamped& operator=(const ZoneTriggerWithPoseStamped&) = delete;
-
-    ZoneTriggerWithPoseStamped(ZoneTriggerWithPoseStamped&&) = default;
-    ZoneTriggerWithPoseStamped& operator=(ZoneTriggerWithPoseStamped&&) = default;
-
     bool isTriggered(const geometry_msgs::msg::PoseStamped::SharedPtr msg) const override;
 
     std::string getName() const override

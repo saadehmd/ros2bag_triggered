@@ -26,12 +26,6 @@ public:
 
     ZoneTriggerWithNavSatFix() = delete;
     ~ZoneTriggerWithNavSatFix() override = default;
-
-    ZoneTriggerWithNavSatFix(const ZoneTriggerWithNavSatFix&) = delete;
-    ZoneTriggerWithNavSatFix& operator=(const ZoneTriggerWithNavSatFix&) = delete;
-
-    ZoneTriggerWithNavSatFix(ZoneTriggerWithNavSatFix&&) = default;
-    ZoneTriggerWithNavSatFix& operator=(ZoneTriggerWithNavSatFix&&) = default;
     
     bool isTriggered(const sensor_msgs::msg::NavSatFix::SharedPtr msg) const override;
 
