@@ -23,7 +23,9 @@ public:
     {
         return "BatteryHealthTrigger";
     }
-    void fromYaml(const YAML::Node& node) override;
+    
+private:
+    void configureConditionalParams(const YAML::Node& node) override;
 };
 }  // namespace ros2bag_triggered::examples
 

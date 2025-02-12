@@ -31,8 +31,10 @@ public:
         return "EmptyTrigger";
     }
 
-    void fromYaml(const YAML::Node& node) override
-    {}
+    void configureConditionalParams(const YAML::Node& node) override
+    {
+        // No conditional params required for this trigger.
+    }
         
 };
 }  // namespace ros2bag_triggered::tests

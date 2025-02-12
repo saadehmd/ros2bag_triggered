@@ -33,10 +33,9 @@ public:
         return "ZoneTriggerWithPoseStamped";
     }
 
-    void fromYaml(const YAML::Node& node) override;
-    
-protected:
-    TriggerZone trigger_zone_;
+private:
+    void configureConditionalParams(const YAML::Node& node) override;
+    TriggerZone trigger_zone_; // Zone to activate the trigger in. An example of conditional parameters.
 };
 
     

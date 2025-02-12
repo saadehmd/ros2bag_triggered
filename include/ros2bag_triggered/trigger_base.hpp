@@ -28,13 +28,33 @@ public:
         }
     }
 
+    void fromYaml(const YAML::Node& node)
+    {
+        // YAML initialization shouldn't fallback on default constructed values and it should actively throw exceptions 
+        // on problems parsing the configuration from yaml. Inclduing missing key-value pairs or wrong access-types.
+        try
+        {
+            persistance_duration_ = rclcpp::Duration::from_seconds(node["persistance_duration"].as<double>());
+            use_msg_stamp_ = node["use_msg_stamp"].as<bool>();
+            //The base class is still responsible for calling the derived class's configuration of conditional parameters.
+            //This is so that the derived class' implementation of yaml-configuration is minimal i.e.; The initialization 
+            //of required parameters and exception-handling is all done in the base class.
+            configureConditionalParams(node); 
+        }
+        catch (const YAML::BadConversion& e)
+        {
+            RCLCPP_ERROR(*logger_, "Bad-conversion while configuring %s: %s", getName().c_str(), e.what());
+            throw;
+        }
+        catch(const YAML::InvalidNode& e)
+        {
+            RCLCPP_ERROR(*logger_, "Invalid-node while configuring %s: %s", getName().c_str(), e.what());
+            throw;
+        }
+    }
+
     TriggerBase() = delete;
     virtual ~TriggerBase() = default;
-    /*TriggerBase(const TriggerBase&) = default;
-    TriggerBase& operator=(const TriggerBase&) = default;
-
-    TriggerBase(TriggerBase&&) = default;
-    TriggerBase& operator=(TriggerBase&&) = default;*/
 
     virtual bool isTriggered(const typename T::SharedPtr msg) const = 0;
     virtual std::string getName() const = 0;
@@ -162,9 +182,10 @@ protected:
         return negative_edge;
     }
 
-    // The interface dictates that derived classes should implement this method to load the trigger config from a YAML node.
-    // The method is protected and only accessible from the dedicated YAML-based constructor, to protect the encapsulation.
-    virtual void fromYaml(const YAML::Node& node) = 0;
+    // The interface dictates that derived classes should implement this method to load the additional trigger config from the yaml config file.
+    // This config (i.e. conditional parameters) may or may not be required depending on the triggering condition designed by the derived class. 
+    // Nevertheless, it is enforced so that the initialization of the "Conditional parameters" is always delegated to the derived class.
+    virtual void configureConditionalParams(const YAML::Node& node) = 0;
 
     // Utility function: Return message timestamp if message has header
     template <typename MsgT = T>
