@@ -6,16 +6,14 @@
   msg_type: sensor_msgs/msg/BatteryState
   triggers:
     - type: BatteryHealthTrigger
-      persistance_duration: 2.0
-      use_msg_stamp: False
+      use_msg_stamp: true
 
 /empty_msg:
   msg_type: std_msgs/msg/Bool
   record: False
   triggers:
     - type: EmptyTrigger
-      persistance_duration: 2.0
-      use_msg_stamp: False
+      persistance_duration: 10.0
 
 /robot/pose:
   msg_type: geometry_msgs/msg/PoseStamped

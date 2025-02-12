@@ -15,6 +15,8 @@ class TriggeredRecorderNodeTestHelper : public TriggeredRecorderNode<TriggerVari
                                     const std::string& config_dir = "")
         : TriggeredRecorderNode<TriggerVariant>(std::move(node_name), node_options, config_dir)
     {
+        battery_pub = create_publisher<sensor_msgs::msg::BatteryState>("robot/battery_state", 1);
+        bool_pub = create_publisher<std_msgs::msg::Bool>("empty_msg", 1);
     }
 
     std::unordered_map<std::string, TriggerVariant> getTriggers() const
@@ -49,6 +51,11 @@ class TriggeredRecorderNodeTestHelper : public TriggeredRecorderNode<TriggerVari
         return trigger_buffer_timer_ != nullptr;
     }
 
+    std::pair<int64_t, int64_t> getCropPoints() const
+    {
+        return crop_points_;
+    }
+
     void testInit(size_t expected_topics_recorded, size_t expected_subscriptions, std::vector<std::string> expected_trigger_types)
     {
         
@@ -74,6 +81,27 @@ class TriggeredRecorderNodeTestHelper : public TriggeredRecorderNode<TriggerVari
         EXPECT_TRUE(trigger_buffer_timer_ != nullptr);
     }
 
+    void callReset() {reset();}
+
+    void publishBatteryMsg(bool is_activated)
+    {
+        using sensor_msgs::msg::BatteryState;
+        auto battery_status = is_activated ? BatteryState::POWER_SUPPLY_HEALTH_DEAD : BatteryState::POWER_SUPPLY_HEALTH_GOOD;
+        auto msg = sensor_msgs::msg::BatteryState().set__power_supply_health(battery_status);
+        battery_pub->publish(msg);
+        rclcpp::spin_some(this->get_node_base_interface());
+    }
+
+    void publishBoolMsg(bool is_activated)
+    {
+        auto msg = std_msgs::msg::Bool().set__data(is_activated);
+        bool_pub->publish(msg);
+        rclcpp::spin_some(this->get_node_base_interface());
+    }
+
+  private:
+    rclcpp::Publisher<sensor_msgs::msg::BatteryState>::SharedPtr battery_pub; 
+    rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr bool_pub;
 };
 
 class TriggeredRecorderNodeTestFixture : public ::testing::Test
@@ -106,7 +134,6 @@ TEST_F(TriggeredRecorderNodeTestFixture, test_valid_initialization)
     std::filesystem::path prefix_path = ament_index_cpp::get_package_prefix("ros2bag_triggered");
     SetUp(prefix_path / "test/configs/valid_config");
 
-    //Refer to root/test/configs/correct_config 
     const size_t expected_topics_recorded = 2;
     std::vector<std::string> expected_trigger_types = {"EmptyTrigger", "BatteryHealthTrigger"};
     const size_t expected_subscriptions = 3; //Topics that are neither triggered nor recorded are not added to subscriptions.
@@ -122,7 +149,7 @@ TEST_F(TriggeredRecorderNodeTestFixture, test_invalid_config_dir)
 TEST_F(TriggeredRecorderNodeTestFixture, test_invalid_config_filenames)
 {
     std::filesystem::path prefix_path = ament_index_cpp::get_package_prefix("ros2bag_triggered");
-    EXPECT_THROW(SetUp(prefix_path / "test/configs/invalid_filenames_config"), YAML::Exception);
+    EXPECT_THROW(SetUp(prefix_path / "test/configs/invalid_filenames_config"), YAML::BadFile);
 }
 
 TEST_F(TriggeredRecorderNodeTestFixture, test_config_with_extra_triggers)
@@ -142,10 +169,69 @@ TEST_F(TriggeredRecorderNodeTestFixture, test_config_with_missing_triggers)
     std::filesystem::path prefix_path = ament_index_cpp::get_package_prefix("ros2bag_triggered");
     SetUp(prefix_path / "test/configs/config_with_missing_triggers");
 
-    //Refer to root/test/configs/correct_config 
     const size_t expected_topics_recorded = 1;
     std::vector<std::string> expected_trigger_types = {"EmptyTrigger"};
     const size_t expected_subscriptions = 2; //Topics that are neither triggered nor recorded are not added to subscriptions.
     
     test_helper_->testInit(expected_topics_recorded, expected_subscriptions, expected_trigger_types);    
+}
+
+TEST_F(TriggeredRecorderNodeTestFixture, test_incomplete_trigger_configs)
+{
+    std::filesystem::path prefix_path = ament_index_cpp::get_package_prefix("ros2bag_triggered");
+    EXPECT_THROW(SetUp(prefix_path / "test/configs/incomplete_trigger_config"), YAML::InvalidNode);
+}
+
+TEST_F(TriggeredRecorderNodeTestFixture, test_topic_callback)
+{
+    std::filesystem::path prefix_path = ament_index_cpp::get_package_prefix("ros2bag_triggered");
+    SetUp(prefix_path / "test/configs/valid_config");
+    const auto trigger_duration = rclcpp::Duration::from_seconds(2.2);
+
+    auto start1 = test_helper_->get_clock()->now();
+    while(test_helper_->get_clock()->now() - start1 < trigger_duration)
+    {
+        test_helper_->publishBatteryMsg(/*is_activated=*/true);
+    }
+    test_helper_->publishBatteryMsg(/*is_activated=*/false);
+
+    auto start2 = test_helper_->get_clock()->now();
+    while(test_helper_->get_clock()->now() - start2 < trigger_duration)
+    {
+        test_helper_->publishBoolMsg(/*is_activated=*/true);
+    }
+    test_helper_->publishBoolMsg(/*is_activated=*/false);
+    
+
+    auto triggers = test_helper_->getTriggers();
+    auto crop_points = test_helper_->getCropPoints();
+    EXPECT_TRUE(std::visit(getAllTriggers, triggers.at("BatteryHealthTrigger")).size() == 1);
+    EXPECT_TRUE(std::visit(getAllTriggers, triggers.at("EmptyTrigger")).size() == 1);
+    EXPECT_TRUE(crop_points.first > 0 && crop_points.second > 0);
+    EXPECT_EQ(crop_points.first , std::visit(getAllTriggers, triggers.at("BatteryHealthTrigger")).at(0).first);
+    EXPECT_EQ(crop_points.second , std::visit(getAllTriggers, triggers.at("EmptyTrigger")).at(0).second);
+}
+
+TEST_F(TriggeredRecorderNodeTestFixture, test_reset)
+{
+    std::filesystem::path prefix_path = ament_index_cpp::get_package_prefix("ros2bag_triggered");
+    SetUp(prefix_path / "test/configs/valid_config");
+    const auto trigger_duration = rclcpp::Duration::from_seconds(2.2);
+
+    auto start1 = test_helper_->get_clock()->now();
+    while(test_helper_->get_clock()->now() - start1 < trigger_duration)
+    {
+        test_helper_->publishBatteryMsg(/*is_activated=*/true);
+        test_helper_->publishBoolMsg(/*is_activated=*/true);
+    }
+    test_helper_->publishBatteryMsg(/*is_activated=*/false);
+    test_helper_->publishBoolMsg(/*is_activated=*/false);
+    test_helper_->callReset();
+    auto triggers = test_helper_->getTriggers();
+    auto crop_points = test_helper_->getCropPoints();
+    EXPECT_TRUE(std::visit(getAllTriggers, triggers.at("BatteryHealthTrigger")).size() == 0);
+    EXPECT_TRUE(std::visit(getAllTriggers, triggers.at("EmptyTrigger")).size() == 0);
+    EXPECT_TRUE(crop_points.first == -1 && crop_points.second == -1);
+    EXPECT_FALSE(test_helper_->isWriterInitialized());
+    
 }

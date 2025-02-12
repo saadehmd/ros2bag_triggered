@@ -33,7 +33,7 @@ public:
 
     void initialize(const std::filesystem::path& writer_config);
     void close();
-    void open(const rosbag2_storage::StorageOptions& storage_options, const rosbag2_cpp::ConverterOptions& converter_options);
+    void open(const rosbag2_storage::StorageOptions& storage_options, const rosbag2_cpp::ConverterOptions& converter_options) override;
     void write_trigger_stats(const std::string& trigger_stats);
 
     /**

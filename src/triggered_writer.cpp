@@ -83,6 +83,7 @@ namespace ros2bag_triggered
             }
             std::filesystem::rename(base_folder, triggered_bag_path);
         }
+        bag_name_ = "";
     }
 
     void TriggeredWriter::open(const rosbag2_storage::StorageOptions& storage_options, const rosbag2_cpp::ConverterOptions& converter_options)
@@ -93,7 +94,8 @@ namespace ros2bag_triggered
 
         // This is a bit hacky, but it circumvents the constraint that rosbag2_cpp::writers::SequentialWriter::open()
         // has no overload that takes a string for the bag path. TODO: use open(std::string) in future whenever the 
-        // API has this possibility.
+        // API has this possibility. Currently it has const rosbag2_storage::StorageOptions& signature in order to 
+        // override the base SequentialWriter::open() method.
         auto storage_options_copy = storage_options;
         storage_options_copy.uri = config_.bag_root_dir + "/" + storage_options.uri;
         RCLCPP_INFO(logger_, "Opened new bag file: %s", storage_options_copy.uri.c_str());

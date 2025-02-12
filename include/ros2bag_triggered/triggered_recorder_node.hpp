@@ -67,15 +67,20 @@ protected:
         }
         catch(YAML::BadFile& exc)
         {
-            RCLCPP_ERROR(get_logger(), "The topic-config path on param-file is invalid");
-            throw exc;
+            RCLCPP_ERROR(get_logger(), "Invalid config file path exception in topic/writer intialization. %s", exc.what());
+            throw;
         }
-        catch(YAML::Exception& exc)
+        catch(const YAML::BadConversion& e)
         {
-            RCLCPP_ERROR(get_logger(), "Parsing error in parsing the topic/writer configs.");
-            throw exc;
+            RCLCPP_ERROR(get_logger(), "Bad-conversion in topic/writer intialization config: %s", e.what());
+            throw;
         }
-
+        catch(const YAML::InvalidNode& e)
+        {
+            RCLCPP_ERROR(get_logger(), "Invalid-node in topic/writer intialization config: %s", e.what());
+            throw;
+        }
+     
         initialize_triggers(std::make_index_sequence<std::variant_size<TriggerVariant>::value>{});
         reset_writer();
 
@@ -104,21 +109,34 @@ protected:
         //Create all topics immediately after creating the new writer
         for (const auto& topic : topics_config_)
         {
-            auto topic_name = topic.first.as<std::string>();
-            auto topic_cfg  = topic.second;
-            auto msg_type = topic_cfg["msg_type"].as<std::string>();
-            auto is_recorded = topic_cfg["record"] ? topic_cfg["record"].as<bool>() : true;
-
-            if(!is_recorded)
+            try
             {
-                continue;
+                auto topic_name = topic.first.as<std::string>();
+                auto topic_cfg  = topic.second;
+                auto msg_type = topic_cfg["msg_type"].as<std::string>();
+                auto is_recorded = topic_cfg["record"] ? topic_cfg["record"].as<bool>() : true;
+                if(!is_recorded)
+                {
+                    continue;
+                }
+                std::string serialization_format = "cdr";
+                auto topic_meta = rosbag2_storage::TopicMetadata();
+                topic_meta.name = topic_name;
+                topic_meta.type = msg_type;
+                topic_meta.serialization_format = serialization_format;
+                writer_.create_topic(topic_meta);
             }
-            std::string serialization_format = "cdr";
-            auto topic_meta = rosbag2_storage::TopicMetadata();
-            topic_meta.name = topic_name;
-            topic_meta.type = msg_type;
-            topic_meta.serialization_format = serialization_format;
-            writer_.create_topic(topic_meta);
+            catch(const YAML::BadConversion& e)
+            {
+                RCLCPP_ERROR(get_logger(), "Bad-conversion in parsing topic config", e.what());
+                throw;
+            }
+            catch(const YAML::InvalidNode& e)
+            {
+                RCLCPP_ERROR(get_logger(), "Invalid-node in parsing topic config", e.what());
+                throw;
+            }
+            
         }
     }
 
@@ -184,11 +202,6 @@ protected:
                         }
                         throw std::out_of_range("Configured trigger types were not found.");
                     }
-                    catch(const std::runtime_error& e)
-                    {
-                        RCLCPP_ERROR(get_logger(), e.what());
-                        throw e;
-                    }
                 }
             }
 
@@ -209,6 +222,7 @@ protected:
                         const std::string& topic_type,
                         const std::vector<std::reference_wrapper<TriggerVariant>>& triggers)
     {  
+        RCLCPP_DEBUG(get_logger(), "Received message on topic: %s", topic_name.c_str());
         rclcpp::Time time_stamp = get_clock()->now();
         writer_.write(*msg, topic_name, topic_type, time_stamp);
 
