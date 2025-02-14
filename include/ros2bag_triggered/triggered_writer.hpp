@@ -19,11 +19,11 @@ public:
 
     struct Config
     {
-        std::string bag_root_dir;
-        double trigger_buffer_duration;
-        double crop_gap;
-        bool bag_cropping;
-        bool write_trigger_stats;
+        std::string bag_root_dir{"./"};
+        double trigger_buffer_duration{60.0};
+        double crop_gap{5.0};
+        bool bag_cropping{true};
+        bool write_trigger_stats{true};
     };
 
     TriggeredWriter(const rclcpp::Logger& logger) 

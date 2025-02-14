@@ -36,16 +36,15 @@ namespace ros2bag_triggered
     void TriggeredWriter::initialize(const std::filesystem::path& writer_config)
     {
         YAML::Node writer_cfg = YAML::LoadFile(writer_config);
-
         storage_options_.storage_id = rosbag2_storage::get_default_storage_id();
-        storage_options_.max_bagfile_size = writer_cfg["max_bagfile_size"].as<uint64_t>();
-        storage_options_.max_bagfile_duration = writer_cfg["max_bagfile_duration"].as<uint64_t>();
-        storage_options_.max_cache_size = writer_cfg["max_cache_size"].as<uint64_t>();
-        config_.trigger_buffer_duration = writer_cfg["trigger_buffer_interval"].as<double>();
-        config_.crop_gap = writer_cfg["crop_gap"].as<double>();
-        config_.bag_root_dir =  writer_cfg["bag_root_dir"].as<std::string>();
-        config_.bag_cropping = writer_cfg["bag_cropping"].as<bool>();
-        config_.write_trigger_stats = writer_cfg["write_trigger_stats"].as<bool>();
+        if (writer_cfg["max_bagfile_size"]) storage_options_.max_bagfile_size = writer_cfg["max_bagfile_size"].as<uint64_t>();
+        if (writer_cfg["max_bagfile_duration"]) storage_options_.max_bagfile_duration = writer_cfg["max_bagfile_duration"].as<uint64_t>();
+        if (writer_cfg["max_cache_size"]) storage_options_.max_cache_size = writer_cfg["max_cache_size"].as<uint64_t>();
+        if (writer_cfg["trigger_buffer_interval"]) config_.trigger_buffer_duration = writer_cfg["trigger_buffer_interval"].as<double>();
+        if (writer_cfg["crop_gap"]) config_.crop_gap = writer_cfg["crop_gap"].as<double>();
+        if (writer_cfg["bag_root_dir"]) config_.bag_root_dir =  writer_cfg["bag_root_dir"].as<std::string>();
+        if (writer_cfg["bag_cropping"]) config_.bag_cropping = writer_cfg["bag_cropping"].as<bool>();
+        if (writer_cfg["write_trigger_stats"]) config_.write_trigger_stats = writer_cfg["write_trigger_stats"].as<bool>();
     }
 
     void TriggeredWriter::close()

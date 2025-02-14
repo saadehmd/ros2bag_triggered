@@ -111,10 +111,11 @@ if(BUILD_TESTING)
 
 
   set(TEST_SOURCE
-    #test/trigger_base_tests.cpp
-    test/triggered_recorder_node_tests.cpp)
+    test/trigger_base_tests.cpp
+    test/triggered_recorder_node_tests.cpp
+    test/triggered_writer_tests.cpp)
 
-  ament_add_gtest(trigger_base_tests test/triggered_recorder_node_tests.cpp)
+  ament_add_gtest(trigger_base_tests ${TEST_SOURCE})
   set_tests_properties(trigger_base_tests PROPERTIES TIMEOUT 100)
   target_include_directories(trigger_base_tests PRIVATE include test)
   target_include_directories(trigger_base_tests SYSTEM PRIVATE ${GTEST_INCLUDE_DIRS})
