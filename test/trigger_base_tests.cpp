@@ -85,7 +85,7 @@ TEST(TiggerWithHeaderTests, test_trigger_stamps)
 
     const auto time_offset = rclcpp::Duration::from_seconds(10.0);
     const auto surge_start = clock->now();
-    
+    std::shared_ptr<rclcpp::Time> clock_start; 
     while ((clock->now() - surge_start).seconds() < persistance_duration + buffer_duration)
     {
         sensor_msgs::msg::BatteryState pos_msg;
@@ -94,8 +94,13 @@ TEST(TiggerWithHeaderTests, test_trigger_stamps)
         
         auto pos_msg_serialized = std::make_shared<rclcpp::SerializedMessage>();
         serializer.serialize_message(&pos_msg, pos_msg_serialized.get());
-        
+    
         EXPECT_FALSE(triggers_with_stamps.onSurgeSerialized(pos_msg_serialized));
+
+        if(!clock_start)
+        {
+            clock_start = std::make_shared<rclcpp::Time>(clock->now());
+        }
         EXPECT_FALSE(triggers_with_clock.onSurgeSerialized(pos_msg_serialized));
     }
     
@@ -108,16 +113,17 @@ TEST(TiggerWithHeaderTests, test_trigger_stamps)
     serializer.serialize_message(&neg_msg, neg_msg_serialized.get());
 
     EXPECT_TRUE(triggers_with_stamps.onSurgeSerialized(neg_msg_serialized));
+
+    auto clock_end = clock->now();
     EXPECT_TRUE(triggers_with_clock.onSurgeSerialized(neg_msg_serialized));
 
     const auto last_trigger_with_stamps = triggers_with_stamps.getAllTriggers().back();
-    EXPECT_NEAR(last_trigger_with_stamps.first, (surge_start + time_offset).nanoseconds(), 10e6);
-    EXPECT_NEAR(last_trigger_with_stamps.second, (surge_end + time_offset).nanoseconds(), 10e6);
+    EXPECT_NEAR(rclcpp::Duration::from_nanoseconds(last_trigger_with_stamps.first).seconds(), (surge_start + time_offset).seconds(), 0.0001);
+    EXPECT_NEAR(rclcpp::Duration::from_nanoseconds(last_trigger_with_stamps.second).seconds(), (surge_end + time_offset).seconds(), 0.0001);
 
     const auto last_trigger_with_clock = triggers_with_clock.getAllTriggers().back();
-    EXPECT_NEAR(last_trigger_with_clock.first, surge_start.nanoseconds(), 10e6);
-    EXPECT_NEAR(last_trigger_with_clock.second, surge_end.nanoseconds(), 10e6);
-
+    EXPECT_NEAR(rclcpp::Duration::from_nanoseconds(last_trigger_with_clock.first).seconds(), clock_start->seconds(), 0.0001);
+    EXPECT_NEAR(rclcpp::Duration::from_nanoseconds(last_trigger_with_clock.second).seconds(), clock_end.seconds(), 0.0001);
 }    
 
 

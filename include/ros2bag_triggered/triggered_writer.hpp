@@ -73,7 +73,7 @@ public:
         return topics_names_to_info_.size();
     }
 
-private:
+protected:
     Config config_;
     std::string bag_name_;
     std::optional<rosbag2_storage::StorageOptions> rewrite_options_;

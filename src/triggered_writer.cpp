@@ -25,7 +25,7 @@ namespace ros2bag_triggered
         uint64_t new_end_time = std::min(static_cast<uint64_t>(end_time), bag_end_time);
 
         // Even with cropping enabled and triggers detected, there might be no need to actually crop the bag.
-        if( new_start_time != bag_start_time || new_end_time != bag_end_time)
+        if(new_start_time != bag_start_time || new_end_time != bag_end_time)
         {
             rewrite_options_ = std::make_optional<rosbag2_storage::StorageOptions>(storage_options_);
             rewrite_options_->start_time_ns = new_start_time;
@@ -56,6 +56,7 @@ namespace ros2bag_triggered
         {
             RCLCPP_WARN(logger_, "No triggers were detected. Deleting the bag: %s.", base_folder.c_str());
             std::filesystem::remove_all(base_folder);
+            bag_name_ = "";
             return;
         }
         
