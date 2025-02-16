@@ -56,7 +56,6 @@ namespace ros2bag_triggered
         {
             RCLCPP_WARN(logger_, "No triggers were detected. Deleting the bag: %s.", base_folder.c_str());
             std::filesystem::remove_all(base_folder);
-            bag_name_ = "";
             return;
         }
         
@@ -83,7 +82,6 @@ namespace ros2bag_triggered
             }
             std::filesystem::rename(base_folder, triggered_bag_path);
         }
-        bag_name_ = "";
     }
 
     void TriggeredWriter::open(const rosbag2_storage::StorageOptions& storage_options, const rosbag2_cpp::ConverterOptions& converter_options)

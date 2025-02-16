@@ -128,7 +128,6 @@ class TriggeredWriterTestFixture : public ::testing::Test
         writer_.close();
 
         // Validate the bag file exists in the right destination.
-        EXPECT_TRUE(test_helper.get_bag_name().empty());
         EXPECT_FALSE(std::filesystem::exists(config.bag_root_dir + last_bag_name));
         EXPECT_TRUE(std::filesystem::exists(config.bag_root_dir + "/triggered_bags/" + last_bag_name));
         
@@ -210,7 +209,6 @@ TEST_F(TriggeredWriterTestFixture, test_close_no_triggers)
     auto bag_name = open_valid_bag();
     const auto bag_base_folder = test_helper.get_base_folder();
     test_helper.close();
-    EXPECT_TRUE(test_helper.get_bag_name().empty());
     EXPECT_FALSE(std::filesystem::exists(bag_base_folder));
     EXPECT_FALSE(std::filesystem::exists(test_helper.getConfig().bag_root_dir + "/triggered_bags/" + bag_name));
 }

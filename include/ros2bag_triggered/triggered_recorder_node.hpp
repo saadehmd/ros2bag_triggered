@@ -211,7 +211,7 @@ protected:
                 continue;
             }
             std::function<void(std::shared_ptr<rclcpp::SerializedMessage> msg)> callback = 
-                        std::bind(&TriggeredRecorderNode::topic_callback, this, std::placeholders::_1, topic_name, msg_type, triggers);            
+                        std::bind(&TriggeredRecorderNode::topic_callback, this, std::placeholders::_1, topic_name, msg_type, triggers, is_recorded);            
             subscriptions_.push_back(create_generic_subscription(topic_name, msg_type, rclcpp::QoS(10), callback));
             RCLCPP_INFO(get_logger(), (triggers_debug_info + "]").c_str());                
         }
@@ -220,12 +220,17 @@ protected:
     void topic_callback(const std::shared_ptr<rclcpp::SerializedMessage> msg, 
                         const std::string& topic_name, 
                         const std::string& topic_type,
-                        const std::vector<std::reference_wrapper<TriggerVariant>>& triggers)
+                        const std::vector<std::reference_wrapper<TriggerVariant>>& triggers,
+                        bool is_recorded)
     {  
         RCLCPP_DEBUG(get_logger(), "Received message on topic: %s", topic_name.c_str());
         rclcpp::Time time_stamp = get_clock()->now();
-        writer_.write(*msg, topic_name, topic_type, time_stamp);
 
+        if (is_recorded)
+        {
+            writer_.write(*msg, topic_name, topic_type, time_stamp);
+        }
+        
         for (auto& trigger : triggers)
         {
             crop_points_from_triggers(trigger, msg);
