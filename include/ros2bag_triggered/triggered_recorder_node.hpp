@@ -152,7 +152,9 @@ protected:
         crop points for the bag. Also get trigger stats for writing later. */
         for (auto& trigger : triggers_)
         {   
-            crop_points_from_triggers(trigger.second, /*msg=*/nullptr); // nullptr acts as an abort signal to the triggers.
+            // Send an abort surge to all triggers.
+            crop_points_from_triggers(trigger.second);
+            
             if (write_trigger_stats)
             {
                 trigger_stats += std::visit(getTriggerStats, trigger.second);
@@ -190,6 +192,14 @@ protected:
                         auto& trigger = triggers_.at(trigger_type);
                         std::visit([&triggers_info](auto& arg){configureTrigger(arg, triggers_info);}, trigger);                     
                         triggers_debug_info += std::visit(getTriggerInfo, trigger);
+                        auto trigger_msg_type = std::visit(getMsgType, trigger);
+                        auto trigger_type = std::visit(getName, trigger);
+                        if(trigger_msg_type != msg_type)
+                        {
+                            RCLCPP_ERROR(get_logger(), "Trigger type %s does not have the expected message-type %s but instead has the msg-type: %s", 
+                                                                                    trigger_type.c_str(), msg_type.c_str(), trigger_msg_type.c_str());
+                            throw std::runtime_error("Wrong msg-type on the trigger: " + trigger_type);
+                        }
                         triggers.push_back(trigger);
                     }
                     catch(const std::out_of_range& e)
@@ -200,46 +210,69 @@ protected:
                         {
                             RCLCPP_ERROR(get_logger(), "- %s", key.c_str());
                         }
-                        throw std::out_of_range("Configured trigger types were not found.");
+                        throw std::out_of_range("Configured trigger types were not found in the compiled TriggerVariant.");
                     }
                 }
             }
 
-            if(!is_recorded && triggers.empty())
+            if(!triggers.empty()) 
             {
-                RCLCPP_WARN(get_logger(), "Topic %s is not recorded and has no triggers. Skipping...", topic_name.c_str());
+                // If the topic is triggered, we create subscription with the message type deduced at compile-time 
+                // from TriggerType::MsgType of any trigger on that topic.
+                create_trigger_subscription(topic_name, triggers, is_recorded);
+            }
+            else if(is_recorded)
+            {
+                // If the topic is not triggered, we create subscription as generic, that resolves message-type at runtime.
+                std::function<void(std::shared_ptr<rclcpp::SerializedMessage> msg)> callback = 
+                        std::bind(&TriggeredRecorderNode::untriggered_topic_callback, this, std::placeholders::_1, topic_name, msg_type, triggers);            
+                untriggered_subscriptions_.push_back(create_generic_subscription(topic_name, msg_type, rclcpp::QoS(10), callback));
+            }
+            else
+            {
+                // If the topic is neither recorded nor triggered, we skip subscription entirely.
+                RCLCPP_WARN(get_logger(), "Topic %s is not recorded and has no triggers. Skipping subscription...", topic_name.c_str());
                 continue;
             }
-            std::function<void(std::shared_ptr<rclcpp::SerializedMessage> msg)> callback = 
-                        std::bind(&TriggeredRecorderNode::topic_callback, this, std::placeholders::_1, topic_name, msg_type, triggers, is_recorded);            
-            subscriptions_.push_back(create_generic_subscription(topic_name, msg_type, rclcpp::QoS(10), callback));
+
             RCLCPP_INFO(get_logger(), (triggers_debug_info + "]").c_str());                
         }
     }
 
-    void topic_callback(const std::shared_ptr<rclcpp::SerializedMessage> msg, 
-                        const std::string& topic_name, 
-                        const std::string& topic_type,
-                        const std::vector<std::reference_wrapper<TriggerVariant>>& triggers,
-                        bool is_recorded)
-    {  
-        RCLCPP_DEBUG(get_logger(), "Received message on topic: %s", topic_name.c_str());
+    template<typename MsgType>
+    void triggered_topic_callback(const typename MsgType::SharedPtr msg, 
+                      const std::string& topic_name, 
+                      const std::vector<std::reference_wrapper<TriggerVariant>>& triggers,
+                      bool is_recorded)
+    {
+        RCLCPP_DEBUG(get_logger(), "Received message on triggered topic: %s", topic_name.c_str());
         rclcpp::Time time_stamp = get_clock()->now();
 
         if (is_recorded)
         {
-            writer_.write(*msg, topic_name, topic_type, time_stamp);
+            writer_.write<MsgType>(*msg, topic_name, time_stamp);
         }
-        
+
         for (auto& trigger : triggers)
         {
-            crop_points_from_triggers(trigger, msg);
+            crop_points_from_triggers<MsgType>(trigger, msg);
         }
+
     }
 
-    void crop_points_from_triggers(TriggerVariant& trigger, const std::shared_ptr<rclcpp::SerializedMessage>& msg)
+    void untriggered_topic_callback(const std::shared_ptr<rclcpp::SerializedMessage> msg, 
+                        const std::string& topic_name, 
+                        const std::string& topic_type,
+                        const std::vector<std::reference_wrapper<TriggerVariant>>& triggers)
+    {  
+        RCLCPP_DEBUG(get_logger(), "Received message on untriggered topic: %s", topic_name.c_str());
+        rclcpp::Time time_stamp = get_clock()->now();
+        
+        writer_.write(*msg, topic_name, topic_type, time_stamp);
+    }
+
+    void crop_points_from_triggers(TriggerVariant& trigger, bool negative_edge)
     {
-        bool negative_edge = std::visit([&msg](auto& arg){return onSurge(arg, msg);}, trigger);
         if (negative_edge)
         {
             auto all_triggers = std::visit(getAllTriggers, trigger);
@@ -253,16 +286,27 @@ protected:
             auto stop_point =  static_cast<int64_t>(last_trigger.second);
             crop_points_.first = crop_points_.first >= 0  ? std::min(crop_points_.first, start_point) : last_trigger.first;
             crop_points_.second = std::max(crop_points_.second, stop_point);
-            
         }
     }
 
+    template <typename MsgType>
+    void crop_points_from_triggers(TriggerVariant& trigger, const typename MsgType::SharedPtr msg)
+    {
+        bool negative_edge = std::visit([&msg](auto& arg){return onSurge<MsgType>(arg, msg);}, trigger);
+        crop_points_from_triggers(trigger, negative_edge);
+    }
+
+    void crop_points_from_triggers(TriggerVariant& trigger)
+    {
+        bool negative_edge = std::visit([](auto& arg){return abortSurge(arg);}, trigger);
+        crop_points_from_triggers(trigger, negative_edge);
+    }
+
     template<std::size_t... Is>
-    void initialize_triggers(std::index_sequence<Is...>)
-    {   
+    void initialize_triggers(std::index_sequence<Is...>) {
         (([&]() {
             using TriggerT = std::variant_alternative_t<Is, TriggerVariant>;
-            if constexpr (!std::is_same_v<TriggerT, std::monostate>)
+            if constexpr (!std::is_same_v<TriggerT, std::monostate>) 
             {
                 auto temp = TriggerT{/*persistance_duration=*/0, get_clock(), std::make_shared<rclcpp::Logger>(get_logger()), /*use_msg_stamp=*/true};
                 triggers_[temp.getName()] = std::move(temp);
@@ -270,12 +314,34 @@ protected:
         }()), ...);
 
         std::string triggers_debug_info = "Recorder Node initialized with following trigger types:-";
-        for(auto& [key, value] : triggers_)
+        for(auto& [key, value] : triggers_) 
         {
             const auto msg_type = std::visit(getMsgType, value);
             triggers_debug_info += "\n\tTrigger Type: " + key + ",\tMsg Type: " + msg_type;
         }
         RCLCPP_INFO(get_logger(), triggers_debug_info.c_str());
+    }
+
+    void create_trigger_subscription(std::string topic_name, 
+                                     const std::vector<std::reference_wrapper<TriggerVariant>>& triggers, 
+                                     bool is_recorded)
+    {
+        if(triggers.empty())
+        {
+            return;
+        }
+        
+        std::visit([&](auto& concrete_trigger) 
+        {
+            using TriggerT = std::decay_t<decltype(concrete_trigger)>;
+            if constexpr (!std::is_same_v<TriggerT, std::monostate>) 
+            {
+                using MsgType = typename TriggerT::MsgType;
+                std::function<void(typename MsgType::SharedPtr)> callback = 
+                    std::bind(&TriggeredRecorderNode::triggered_topic_callback<MsgType>, this, std::placeholders::_1, topic_name, triggers, is_recorded);
+                triggered_subscriptions_.push_back(create_subscription<MsgType>(topic_name, rclcpp::QoS(10), callback));
+            }
+        }, triggers.at(0).get()); // Use the first trigger to deduce the message type. Could be any trigger tho. They all should have the same underlying message type.
     }
     
     ros2bag_triggered::TriggeredWriter & get_writer_impl()
@@ -286,7 +352,8 @@ protected:
     }
 
     rosbag2_cpp::Writer writer_{/*writer_impl=*/std::make_unique<ros2bag_triggered::TriggeredWriter>(get_logger())};
-    std::vector<rclcpp::GenericSubscription::SharedPtr> subscriptions_;
+    std::vector<rclcpp::GenericSubscription::SharedPtr> untriggered_subscriptions_;
+    std::vector<rclcpp::SubscriptionBase::SharedPtr> triggered_subscriptions_;
     std::unordered_map<std::string, TriggerVariant> triggers_;
     YAML::Node topics_config_;
     rclcpp::TimerBase::SharedPtr trigger_buffer_timer_;

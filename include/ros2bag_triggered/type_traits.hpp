@@ -24,7 +24,7 @@ namespace ros2bag_triggered {
     // Specialize for valid ROS 2 message types using `rosidl_generator_traits`
     template <typename T>
     struct IsRosIdlType<T, std::void_t<typename rosidl_generator_traits::is_message<T>::type>> : std::true_type {};
-
+    
 } // namespace type_traits
 
 

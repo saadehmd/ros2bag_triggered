@@ -14,8 +14,8 @@ class TriggerBase
 {
     static_assert(type_traits::IsRosIdlType<T>::value, "TriggerBase can only be instantiated with ROS2-IDL message types");
 
-public:
-
+ public:
+    using MsgType = T;
     explicit TriggerBase(double persistance_duration, const rclcpp::Clock::SharedPtr& clock, const std::shared_ptr<rclcpp::Logger> logger, bool use_msg_stamp)
     : persistance_duration_(rclcpp::Duration::from_seconds(persistance_duration)),
       clock_(clock),
@@ -101,8 +101,6 @@ public:
         return onSurge(msg);
     }
 
-    
-
     std::vector<std::pair<uint64_t, uint64_t>> getAllTriggers() const
     {
         return all_triggers_;
@@ -139,8 +137,6 @@ public:
     {
         enabled_ = enabled;
     }
-    
-protected:
 
     bool onSurge(const typename T::SharedPtr msg)
     {   
@@ -182,6 +178,7 @@ protected:
         return negative_edge;
     }
 
+ protected:
     // The interface dictates that derived classes should implement this method to load the additional trigger config from the yaml config file.
     // This config (i.e. conditional parameters) may or may not be required depending on the triggering condition designed by the derived class. 
     // Nevertheless, it is enforced so that the initialization of the "Conditional parameters" is always delegated to the derived class.

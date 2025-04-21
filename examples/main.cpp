@@ -11,7 +11,11 @@ using namespace ros2bag_triggered;
 
 // std::monostate should be used as the first type, to represent the absence of a value in a variant.
 
-using MyVariant = std::variant<std::monostate, examples::ZoneTriggerWithPoseStamped, examples::ZoneTriggerWithNavSatFix, examples::NavSatInvalidFixTrigger, examples::BatteryHealthTrigger>;
+using MyVariant = std::variant<std::monostate, 
+                               examples::ZoneTriggerWithPoseStamped, 
+                               examples::ZoneTriggerWithNavSatFix, 
+                               examples::NavSatInvalidFixTrigger, 
+                               examples::BatteryHealthTrigger>;
 
 int main(int argc, char** argv) 
 {

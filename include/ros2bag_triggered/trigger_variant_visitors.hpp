@@ -2,6 +2,7 @@
 #define ROS2BAG_TRIGGERED_TRIGGER_VARIANT_VISITORS_HPP
 
 #include <variant>
+#include <std_msgs/msg/empty.hpp>
 
 namespace ros2bag_triggered {
 // Visitors
@@ -32,6 +33,13 @@ auto getMsgType = [](auto& trigger) -> std::string {
     return "unknown"; // Default type for monostate
 };
 
+auto getName = [](auto& trigger) -> std::string { 
+    if constexpr (!std::is_same_v<std::decay_t<decltype(trigger)>, std::monostate>) {
+        return trigger.getName();
+    }
+    return "unknown"; // Default name for monostate
+};
+
 auto getTriggerInfo = [](auto& trigger) -> std::string { 
     if constexpr (!std::is_same_v<std::decay_t<decltype(trigger)>, std::monostate>) {
         return trigger.getTriggerInfo();
@@ -46,12 +54,31 @@ auto getTriggerStats = [](auto& trigger) -> std::string {
     return ""; // Return empty string for monostate
 };
 
-auto onSurge = [](auto& trigger, const std::shared_ptr<rclcpp::SerializedMessage>& serialized_msg) -> bool {   
+template <typename MsgType>
+auto onSurge = [](auto& trigger, const typename MsgType::SharedPtr msg) -> bool {
     if constexpr (!std::is_same_v<std::decay_t<decltype(trigger)>, std::monostate>) {
-        return trigger.onSurgeSerialized(serialized_msg);
+        // Check if the trigger's expected message type matches the provided message type
+        using TriggerMsgType = typename std::decay_t<decltype(trigger)>::MsgType;
+        if constexpr (std::is_same_v<TriggerMsgType, MsgType>) 
+        {
+            return trigger.onSurge(msg);
+        } 
+        else 
+        {
+            throw std::runtime_error("Mismatch between msg-type on trigger: " + trigger.getMsgType() + 
+                                     " and msg-type on subscribed topic: " + typeid(MsgType).name());
+        }
     }
     return false; // Default behavior for monostate
 };
+
+auto abortSurge = [](auto& trigger) -> bool { 
+    if constexpr (!std::is_same_v<std::decay_t<decltype(trigger)>, std::monostate>) {
+        return trigger.onSurge(nullptr); // Pass nullptr to indicate an abort signal
+    }
+    return false;
+};
+
 
 auto configureTrigger = [](auto& trigger, const YAML::Node& config) {   
     if constexpr (!std::is_same_v<std::decay_t<decltype(trigger)>, std::monostate>) {

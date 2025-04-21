@@ -7,14 +7,14 @@
   record: false
   triggers:
     - type: BatteryHealthTrigger
-      persistance_duration: 10.0
+      persistance_duration: 5.0
       use_msg_stamp: true
 
 /robot/pose:
   msg_type: geometry_msgs/msg/PoseStamped
   triggers:
     - type: ZoneTriggerWithPoseStamped
-      persistance_duration: 15.0
+      persistance_duration: 3.0
       use_msg_stamp: false
       trigger_zone: {"min_x": 0.0, "max_x": 10.0, "min_y": 0.0, "max_y": 5.0, "min_z": 0, "max_z": 100.0}
 
@@ -24,10 +24,10 @@
   triggers:
     - type: ZoneTriggerWithNavSatFix
       use_msg_stamp: true
-      persistance_duration: 30.0
+      persistance_duration: 10.0
       trigger_zone: {"latitude_max": 34.55, "latitude_min": 34.15, "longitude_max": 122.55, "longitude_min": 122.15, "altitude_max": 100.0, "altitude_min": 10.0}
     - type: NavSatInvalidFixTrigger
-      persistance_duration: 20.0
+      persistance_duration: 10.0
       use_msg_stamp: false
 
 /robot/odometry:
