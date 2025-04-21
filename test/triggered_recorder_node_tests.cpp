@@ -25,7 +25,7 @@ class TriggeredRecorderNodeTestHelper : public TriggeredRecorderNode<TriggerVari
     }
     size_t getNumberOfSubscriptions() const
     {
-       return subscriptions_.size();
+       return triggered_subscriptions_.size() + untriggered_subscriptions_.size();
     }
 
     YAML::Node getTopicsConfig() const
@@ -61,7 +61,7 @@ class TriggeredRecorderNodeTestHelper : public TriggeredRecorderNode<TriggerVari
         
         EXPECT_EQ(getRecordedTopicCount(), expected_topics_recorded);
         EXPECT_EQ(triggers_.size(), std::variant_size<TriggerVariant>::value - 1);
-        EXPECT_EQ(subscriptions_.size(), expected_subscriptions);
+        EXPECT_EQ(getNumberOfSubscriptions(), expected_subscriptions);
         
         for (const auto& trigger_type : expected_trigger_types)
         {

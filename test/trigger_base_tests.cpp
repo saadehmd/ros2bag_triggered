@@ -2,20 +2,19 @@
 #include <examples/battery_health_trigger.hpp>
 #include <gtest/gtest.h>
 
+constexpr double match_threshold{1e-4}; // seconds
+
 void surgeTests(ros2bag_triggered::tests::EmptyTrigger& triggers, double persistance_duration, size_t no_of_surges, bool use_null_termination=false, bool should_trigger=false)
 {
     triggers.reset();
-    auto pos_msg = std_msgs::msg::Bool().set__data(true);
-    auto neg_msg = std_msgs::msg::Bool().set__data(false);
-
-    auto pos_msg_serialized = std::make_shared<rclcpp::SerializedMessage>();
-    auto neg_msg_serialized = use_null_termination ? nullptr : std::make_shared<rclcpp::SerializedMessage>();
-
-    rclcpp::Serialization<std_msgs::msg::Bool> serializer;
-    serializer.serialize_message(&pos_msg, pos_msg_serialized.get());
-    if(!use_null_termination)
-        serializer.serialize_message(&neg_msg, neg_msg_serialized.get());
-    
+    auto pos_msg = std::make_shared<std_msgs::msg::Bool>();
+    pos_msg->data = true;
+    auto neg_msg = std::make_shared<std_msgs::msg::Bool>();
+    neg_msg->data = false;
+    if(use_null_termination)
+    {
+        neg_msg = nullptr;
+    }
 
     auto clock = std::make_shared<rclcpp::Clock>(RCL_ROS_TIME);
     const float buffer_duration{0.05}; // This is added so that the test loop doesn't run slighlty short of the required persistance duration.
@@ -26,22 +25,22 @@ void surgeTests(ros2bag_triggered::tests::EmptyTrigger& triggers, double persist
         const auto surge_start = clock->now();
         while ((clock->now() - surge_start).seconds() < trigger_duration)
         {
-            EXPECT_FALSE(triggers.onSurgeSerialized(pos_msg_serialized));
+            EXPECT_FALSE(triggers.onSurge(pos_msg));
         }
         const auto surge_end = clock->now();
 
         if (should_trigger)
         {
-            EXPECT_TRUE(triggers.onSurgeSerialized(neg_msg_serialized));
+            EXPECT_TRUE(triggers.onSurge(neg_msg));
             const auto last_trigger = triggers.getAllTriggers().back(); 
             EXPECT_EQ(triggers.getAllTriggers().size(), i+1);
-            EXPECT_NEAR(rclcpp::Duration::from_nanoseconds(last_trigger.first).seconds(), surge_start.seconds(), 0.0001);   
-            EXPECT_NEAR(surge_end.seconds(), rclcpp::Duration::from_nanoseconds(last_trigger.second).seconds(), 0.0001);
-            EXPECT_NEAR(rclcpp::Duration::from_nanoseconds(last_trigger.second - last_trigger.first).seconds(), trigger_duration, 0.0001);
+            EXPECT_NEAR(rclcpp::Duration::from_nanoseconds(last_trigger.first).seconds(), surge_start.seconds(), match_threshold);   
+            EXPECT_NEAR(surge_end.seconds(), rclcpp::Duration::from_nanoseconds(last_trigger.second).seconds(), match_threshold);
+            EXPECT_NEAR(rclcpp::Duration::from_nanoseconds(last_trigger.second - last_trigger.first).seconds(), trigger_duration, match_threshold);
         }
         else
         {
-            EXPECT_FALSE(triggers.onSurgeSerialized(neg_msg_serialized));
+            EXPECT_FALSE(triggers.onSurge(neg_msg));
             EXPECT_EQ(triggers.getAllTriggers().size(), 0);
         }
     }
@@ -81,62 +80,55 @@ TEST(TiggerWithHeaderTests, test_trigger_stamps)
     triggers_with_stamps.setEnabled(true);
     triggers_with_clock.setEnabled(true);
 
-    rclcpp::Serialization<sensor_msgs::msg::BatteryState> serializer;
-
     const auto time_offset = rclcpp::Duration::from_seconds(10.0);
     const auto surge_start = clock->now();
     std::shared_ptr<rclcpp::Time> clock_start; 
     while ((clock->now() - surge_start).seconds() < persistance_duration + buffer_duration)
     {
-        sensor_msgs::msg::BatteryState pos_msg;
-        pos_msg.header.stamp = clock->now() + time_offset;
-        pos_msg.power_supply_health = sensor_msgs::msg::BatteryState::POWER_SUPPLY_HEALTH_DEAD;
+        auto pos_msg = std::make_shared<sensor_msgs::msg::BatteryState>();
+        pos_msg->header.stamp = clock->now() + time_offset;
+        pos_msg->power_supply_health = sensor_msgs::msg::BatteryState::POWER_SUPPLY_HEALTH_DEAD;
         
-        auto pos_msg_serialized = std::make_shared<rclcpp::SerializedMessage>();
-        serializer.serialize_message(&pos_msg, pos_msg_serialized.get());
-    
-        EXPECT_FALSE(triggers_with_stamps.onSurgeSerialized(pos_msg_serialized));
+        EXPECT_FALSE(triggers_with_stamps.onSurge(pos_msg));
 
         if(!clock_start)
         {
             clock_start = std::make_shared<rclcpp::Time>(clock->now());
         }
-        EXPECT_FALSE(triggers_with_clock.onSurgeSerialized(pos_msg_serialized));
+        EXPECT_FALSE(triggers_with_clock.onSurge(pos_msg));
     }
     
 
     const auto surge_end = clock->now();
-    sensor_msgs::msg::BatteryState neg_msg;
-    neg_msg.header.stamp = surge_end + time_offset;
-    neg_msg.power_supply_health = sensor_msgs::msg::BatteryState::POWER_SUPPLY_HEALTH_GOOD;
-    auto neg_msg_serialized = std::make_shared<rclcpp::SerializedMessage>();
-    serializer.serialize_message(&neg_msg, neg_msg_serialized.get());
+    auto neg_msg = std::make_shared<sensor_msgs::msg::BatteryState>();
+    neg_msg->header.stamp = surge_end + time_offset;
+    neg_msg->power_supply_health = sensor_msgs::msg::BatteryState::POWER_SUPPLY_HEALTH_GOOD;
 
-    EXPECT_TRUE(triggers_with_stamps.onSurgeSerialized(neg_msg_serialized));
+    EXPECT_TRUE(triggers_with_stamps.onSurge(neg_msg));
 
     auto clock_end = clock->now();
-    EXPECT_TRUE(triggers_with_clock.onSurgeSerialized(neg_msg_serialized));
+    EXPECT_TRUE(triggers_with_clock.onSurge(neg_msg));
 
     const auto last_trigger_with_stamps = triggers_with_stamps.getAllTriggers().back();
-    EXPECT_NEAR(rclcpp::Duration::from_nanoseconds(last_trigger_with_stamps.first).seconds(), (surge_start + time_offset).seconds(), 0.0001);
-    EXPECT_NEAR(rclcpp::Duration::from_nanoseconds(last_trigger_with_stamps.second).seconds(), (surge_end + time_offset).seconds(), 0.0001);
+    EXPECT_NEAR(rclcpp::Duration::from_nanoseconds(last_trigger_with_stamps.first).seconds(), (surge_start + time_offset).seconds(), match_threshold);
+    EXPECT_NEAR(rclcpp::Duration::from_nanoseconds(last_trigger_with_stamps.second).seconds(), (surge_end + time_offset).seconds(), match_threshold);
 
     const auto last_trigger_with_clock = triggers_with_clock.getAllTriggers().back();
-    EXPECT_NEAR(rclcpp::Duration::from_nanoseconds(last_trigger_with_clock.first).seconds(), clock_start->seconds(), 0.0001);
-    EXPECT_NEAR(rclcpp::Duration::from_nanoseconds(last_trigger_with_clock.second).seconds(), clock_end.seconds(), 0.0001);
+    EXPECT_NEAR(rclcpp::Duration::from_nanoseconds(last_trigger_with_clock.first).seconds(), clock_start->seconds(), match_threshold);
+    EXPECT_NEAR(rclcpp::Duration::from_nanoseconds(last_trigger_with_clock.second).seconds(), clock_end.seconds(), match_threshold);
 }    
 
 
 TEST(AllTriggerTests, on_surge_test)
 {
-    auto logger = std::make_shared<rclcpp::Logger>(rclcpp::get_logger("onSurgeSerializedTest"));
+    auto logger = std::make_shared<rclcpp::Logger>(rclcpp::get_logger("onSurgeTest"));
     auto clock = std::make_shared<rclcpp::Clock>(RCL_ROS_TIME);
 
     // No persistance case.
     auto triggers_unpersisted = ros2bag_triggered::tests::EmptyTrigger(0, clock, logger, /*use_time_stamp=*/false);
     triggers_unpersisted.setEnabled(true);
     surgeTests(triggers_unpersisted, /*trigger_duration=*/ 0, /*no_of_surges=*/10, /*use_null_termination=*/false, /*should_trigger=*/true);
-    surgeTests(triggers_unpersisted, /*trigger_duration=*/ 0, /*no_of_surges=*/10, /*use_null_termination=*/ true, /*should_trigger=*/true);
+    surgeTests(triggers_unpersisted, /*trigger_duration=*/ 0, /*no_of_surges=*/10, /*use_null_termination=*/ true, /*should_trigger=*/true); //Test abort surge
 
     // Persistance case.
     const double trigger_duration = 0.25;
@@ -148,7 +140,7 @@ TEST(AllTriggerTests, on_surge_test)
     for (const auto& duration : test_durations)
     {
         surgeTests(triggers_persisted, /*trigger_duration=*/ duration, /*no_of_surges=*/3, /*use_null_termination=*/false, /*should_trigger=*/duration == trigger_duration);
-        surgeTests(triggers_persisted, /*trigger_duration=*/ duration, /*no_of_surges=*/3, /*use_null_termination=*/true, /*should_trigger=*/duration == trigger_duration);
+        surgeTests(triggers_persisted, /*trigger_duration=*/ duration, /*no_of_surges=*/3, /*use_null_termination=*/true, /*should_trigger=*/duration == trigger_duration); //Test abort surge
 
     }
     

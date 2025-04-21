@@ -85,21 +85,6 @@ class TriggerBase
         return stats;
     }
 
-    bool onSurgeSerialized(const std::shared_ptr<rclcpp::SerializedMessage> serialized_msg) 
-    {
-        if(!isEnabled()) return false;
-        if(!serialized_msg)
-        {
-            RCLCPP_DEBUG(*logger_, "Null serialized msg. Abort signal recieved %s", getName().c_str());
-            return onSurge(nullptr);
-        }
-        auto msg = std::make_shared<T>(); 
-        rclcpp::Serialization<T> serializer;
-        serializer.deserialize_message(serialized_msg.get(), msg.get());
-
-        if (!msg) RCLCPP_ERROR(*logger_, "Deserialization resulted in null msg %s", getName().c_str());
-        return onSurge(msg);
-    }
 
     std::vector<std::pair<uint64_t, uint64_t>> getAllTriggers() const
     {
