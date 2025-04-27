@@ -18,7 +18,6 @@
 namespace ros2bag_triggered
 {
 
-
 template<typename TriggerVariant>
 class TriggeredRecorderNode : public rclcpp::Node
 {
@@ -146,6 +145,7 @@ protected:
         auto base_folder = triggered_writer.get_base_folder();
         std::string trigger_stats;
         bool write_trigger_stats = triggered_writer.get_config().write_trigger_stats;
+        TriggerPulseMap all_triggers;
 
         /* Send an early termination surge to all triggers to
         check if any of them are activated and can update
@@ -159,13 +159,16 @@ protected:
             {
                 trigger_stats += std::visit(getTriggerStats, trigger.second);
             }
+            std::string trigger_name = std::visit(getName, trigger.second);
+            all_triggers[trigger_name] = std::visit(getAllTriggers, trigger.second);
             std::visit(resetTrigger, trigger.second);
         }
 
         triggered_writer.set_crop_points(crop_points_.first, crop_points_.second);
         crop_points_ = std::make_pair(-1, -1); //Reset crop points for the next bag.
         writer_.close();
-        triggered_writer.write_trigger_stats(trigger_stats);   
+        triggered_writer.write_trigger_stats(trigger_stats);
+        triggered_writer.plot_triggers(all_triggers);
     }
 
     void create_subscriptions()
