@@ -19,9 +19,9 @@ auto isTriggerEnabled = [](auto& trigger) -> bool {
     return false; // Default behavior for monostate
 };
 
-auto getAllTriggers = [](auto& trigger) -> std::vector<std::pair<uint64_t, uint64_t>> { 
+auto getTriggerPulses = [](auto& trigger) -> std::vector<TriggerPulse> { 
     if constexpr (!std::is_same_v<std::decay_t<decltype(trigger)>, std::monostate>) {
-        return trigger.getAllTriggers();
+        return trigger.getTriggerPulses();
     }
     return {};  // Return empty vector for std::monostate
 };

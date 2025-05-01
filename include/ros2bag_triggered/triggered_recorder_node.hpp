@@ -145,7 +145,7 @@ protected:
         auto base_folder = triggered_writer.get_base_folder();
         std::string trigger_stats;
         bool write_trigger_stats = triggered_writer.get_config().write_trigger_stats;
-        TriggerPulseMap all_triggers;
+        TriggerPulseMap all_trigger_pulses;
 
         /* Send an early termination surge to all triggers to
         check if any of them are activated and can update
@@ -160,7 +160,12 @@ protected:
                 trigger_stats += std::visit(getTriggerStats, trigger.second);
             }
             std::string trigger_name = std::visit(getName, trigger.second);
-            all_triggers[trigger_name] = std::visit(getAllTriggers, trigger.second);
+            auto trigger_pulses = std::visit(getTriggerPulses, trigger.second);
+            if (!trigger_pulses.empty())
+            {
+                all_trigger_pulses[trigger_name] = std::visit(getTriggerPulses, trigger.second);
+            }
+            
             std::visit(resetTrigger, trigger.second);
         }
 
@@ -168,7 +173,7 @@ protected:
         crop_points_ = std::make_pair(-1, -1); //Reset crop points for the next bag.
         writer_.close();
         triggered_writer.write_trigger_stats(trigger_stats);
-        triggered_writer.plot_triggers(all_triggers);
+        triggered_writer.plot_triggers(all_trigger_pulses);
     }
 
     void create_subscriptions()
@@ -278,16 +283,16 @@ protected:
     {
         if (negative_edge)
         {
-            auto all_triggers = std::visit(getAllTriggers, trigger);
-            if (all_triggers.empty())
+            auto trigger_pulses = std::visit(getTriggerPulses, trigger);
+            if (trigger_pulses.empty())
             {
                 return;
             }
 
-            auto& last_trigger = all_triggers.back();
-            auto start_point = static_cast<int64_t>(last_trigger.first);
-            auto stop_point =  static_cast<int64_t>(last_trigger.second);
-            crop_points_.first = crop_points_.first >= 0  ? std::min(crop_points_.first, start_point) : last_trigger.first;
+            auto& last_trigger_pulse = trigger_pulses.back();
+            auto start_point = static_cast<int64_t>(last_trigger_pulse.start_time_);
+            auto stop_point =  static_cast<int64_t>(last_trigger_pulse.end_time_);
+            crop_points_.first = crop_points_.first >= 0  ? std::min(crop_points_.first, start_point) : last_trigger_pulse.start_time_;
             crop_points_.second = std::max(crop_points_.second, stop_point);
         }
     }

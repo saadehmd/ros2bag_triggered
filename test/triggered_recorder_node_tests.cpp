@@ -205,11 +205,11 @@ TEST_F(TriggeredRecorderNodeTestFixture, test_topic_callback)
 
     auto triggers = test_helper_->getTriggers();
     auto crop_points = test_helper_->getCropPoints();
-    EXPECT_TRUE(std::visit(getAllTriggers, triggers.at("BatteryHealthTrigger")).size() == 1);
-    EXPECT_TRUE(std::visit(getAllTriggers, triggers.at("EmptyTrigger")).size() == 1);
+    EXPECT_TRUE(std::visit(getTriggerPulses, triggers.at("BatteryHealthTrigger")).size() == 1);
+    EXPECT_TRUE(std::visit(getTriggerPulses, triggers.at("EmptyTrigger")).size() == 1);
     EXPECT_TRUE(crop_points.first > 0 && crop_points.second > 0);
-    EXPECT_EQ(crop_points.first , std::visit(getAllTriggers, triggers.at("BatteryHealthTrigger")).at(0).first);
-    EXPECT_EQ(crop_points.second , std::visit(getAllTriggers, triggers.at("EmptyTrigger")).at(0).second);
+    EXPECT_EQ(crop_points.first , std::visit(getTriggerPulses, triggers.at("BatteryHealthTrigger")).at(0).start_time_);
+    EXPECT_EQ(crop_points.second , std::visit(getTriggerPulses, triggers.at("EmptyTrigger")).at(0).end_time_);
 }
 
 TEST_F(TriggeredRecorderNodeTestFixture, test_reset)
@@ -229,8 +229,8 @@ TEST_F(TriggeredRecorderNodeTestFixture, test_reset)
     test_helper_->callReset();
     auto triggers = test_helper_->getTriggers();
     auto crop_points = test_helper_->getCropPoints();
-    EXPECT_TRUE(std::visit(getAllTriggers, triggers.at("BatteryHealthTrigger")).size() == 0);
-    EXPECT_TRUE(std::visit(getAllTriggers, triggers.at("EmptyTrigger")).size() == 0);
+    EXPECT_TRUE(std::visit(getTriggerPulses, triggers.at("BatteryHealthTrigger")).size() == 0);
+    EXPECT_TRUE(std::visit(getTriggerPulses, triggers.at("EmptyTrigger")).size() == 0);
     EXPECT_TRUE(crop_points.first == -1 && crop_points.second == -1);
     EXPECT_FALSE(test_helper_->isWriterInitialized());
     

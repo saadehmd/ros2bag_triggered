@@ -9,11 +9,12 @@
 #include <rosbag2_storage/default_storage_id.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <filesystem>
+#include <ros2bag_triggered/trigger_base.hpp>
 
 namespace ros2bag_triggered
 {
 
-using TriggerPulseMap = std::unordered_map<std::string, std::vector<std::pair<uint64_t, uint64_t>>>;
+using TriggerPulseMap = std::unordered_map<std::string, std::vector<TriggerPulse>>;
 
 class TriggeredWriter : public rosbag2_cpp::writers::SequentialWriter
 {
@@ -37,7 +38,7 @@ public:
     void close();
     void open(const rosbag2_storage::StorageOptions& storage_options, const rosbag2_cpp::ConverterOptions& converter_options) override;
     void write_trigger_stats(const std::string& trigger_stats);
-    void plot_triggers(const TriggerPulseMap& all_triggers);
+    void plot_triggers(const TriggerPulseMap& trigger_pulses);
 
     /**
      * @brief Set the cropping time range of the bag file.

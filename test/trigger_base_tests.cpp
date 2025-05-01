@@ -32,16 +32,16 @@ void surgeTests(ros2bag_triggered::tests::EmptyTrigger& triggers, double persist
         if (should_trigger)
         {
             EXPECT_TRUE(triggers.onSurge(neg_msg));
-            const auto last_trigger = triggers.getAllTriggers().back(); 
-            EXPECT_EQ(triggers.getAllTriggers().size(), i+1);
-            EXPECT_NEAR(rclcpp::Duration::from_nanoseconds(last_trigger.first).seconds(), surge_start.seconds(), match_threshold);   
-            EXPECT_NEAR(surge_end.seconds(), rclcpp::Duration::from_nanoseconds(last_trigger.second).seconds(), match_threshold);
-            EXPECT_NEAR(rclcpp::Duration::from_nanoseconds(last_trigger.second - last_trigger.first).seconds(), trigger_duration, match_threshold);
+            const auto last_trigger = triggers.getTriggerPulses().back(); 
+            EXPECT_EQ(triggers.getTriggerPulses().size(), i+1);
+            EXPECT_NEAR(rclcpp::Duration::from_nanoseconds(last_trigger.start_time_).seconds(), surge_start.seconds(), match_threshold);   
+            EXPECT_NEAR(surge_end.seconds(), rclcpp::Duration::from_nanoseconds(last_trigger.end_time_).seconds(), match_threshold);
+            EXPECT_NEAR(rclcpp::Duration::from_nanoseconds(last_trigger.end_time_ - last_trigger.start_time_).seconds(), trigger_duration, match_threshold);
         }
         else
         {
             EXPECT_FALSE(triggers.onSurge(neg_msg));
-            EXPECT_EQ(triggers.getAllTriggers().size(), 0);
+            EXPECT_EQ(triggers.getTriggerPulses().size(), 0);
         }
     }
 
@@ -109,13 +109,13 @@ TEST(TiggerWithHeaderTests, test_trigger_stamps)
     auto clock_end = clock->now();
     EXPECT_TRUE(triggers_with_clock.onSurge(neg_msg));
 
-    const auto last_trigger_with_stamps = triggers_with_stamps.getAllTriggers().back();
-    EXPECT_NEAR(rclcpp::Duration::from_nanoseconds(last_trigger_with_stamps.first).seconds(), (surge_start + time_offset).seconds(), match_threshold);
-    EXPECT_NEAR(rclcpp::Duration::from_nanoseconds(last_trigger_with_stamps.second).seconds(), (surge_end + time_offset).seconds(), match_threshold);
+    const auto last_trigger_with_stamps = triggers_with_stamps.getTriggerPulses().back();
+    EXPECT_NEAR(rclcpp::Duration::from_nanoseconds(last_trigger_with_stamps.start_time_).seconds(), (surge_start + time_offset).seconds(), match_threshold);
+    EXPECT_NEAR(rclcpp::Duration::from_nanoseconds(last_trigger_with_stamps.end_time_).seconds(), (surge_end + time_offset).seconds(), match_threshold);
 
-    const auto last_trigger_with_clock = triggers_with_clock.getAllTriggers().back();
-    EXPECT_NEAR(rclcpp::Duration::from_nanoseconds(last_trigger_with_clock.first).seconds(), clock_start->seconds(), match_threshold);
-    EXPECT_NEAR(rclcpp::Duration::from_nanoseconds(last_trigger_with_clock.second).seconds(), clock_end.seconds(), match_threshold);
+    const auto last_trigger_with_clock = triggers_with_clock.getTriggerPulses().back();
+    EXPECT_NEAR(rclcpp::Duration::from_nanoseconds(last_trigger_with_clock.start_time_).seconds(), clock_start->seconds(), match_threshold);
+    EXPECT_NEAR(rclcpp::Duration::from_nanoseconds(last_trigger_with_clock.end_time_).seconds(), clock_end.seconds(), match_threshold);
 }    
 
 

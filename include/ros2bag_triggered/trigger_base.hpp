@@ -9,6 +9,14 @@
 
 namespace ros2bag_triggered {
 
+struct TriggerPulse
+{
+    TriggerPulse(uint64_t start_time, uint64_t end_time)
+    : start_time_(start_time), end_time_(end_time) {}
+    uint64_t start_time_;
+    uint64_t end_time_;
+};
+
 template<typename T>
 class TriggerBase
 {
@@ -76,26 +84,26 @@ class TriggerBase
     std::string getTriggerStats() const
     {
         std::string stats = "Trigger Stats for " + getName() + ":\n";
-        for (const auto& trigger : all_triggers_)
+        for (const auto& pulse : trigger_pulses_)
         {
-            auto seconds = std::to_string(rclcpp::Duration(std::chrono::nanoseconds(trigger.second - trigger.first)).seconds());
-            stats += "\n\tTriggered from: " + std::to_string(trigger.first) + " to " + std::to_string(trigger.second) + " [" + seconds + " sec.s]\n";
+            auto seconds = std::to_string(rclcpp::Duration(std::chrono::nanoseconds(pulse.end_time_ - pulse.start_time_)).seconds());
+            stats += "\n\tTriggered from: " + std::to_string(pulse.start_time_) + " to " + std::to_string(pulse.end_time_) + " [" + seconds + " sec.s]\n";
         }
         stats += "\n\t=======================================================================================\n";
         return stats;
     }
 
 
-    std::vector<std::pair<uint64_t, uint64_t>> getAllTriggers() const
+    std::vector<TriggerPulse> getTriggerPulses() const
     {
-        return all_triggers_;
+        return trigger_pulses_;
     }
 
     void reset()
     {
         first_stamp_ = 0;
         last_stamp_ = 0;
-        all_triggers_.clear();
+        trigger_pulses_.clear();
     }
 
     void setClock(const rclcpp::Clock::SharedPtr& clock)
@@ -150,7 +158,7 @@ class TriggerBase
         {
             RCLCPP_DEBUG(*logger_, "%s negative edge", getName().c_str());
             RCLCPP_INFO(*logger_, "%s Last Persistent trigger duration: %f seconds", getName().c_str(), rclcpp::Duration(std::chrono::nanoseconds(trigger_duration)).seconds());
-            all_triggers_.push_back(std::make_pair(first_stamp_, last_stamp_));
+            trigger_pulses_.push_back({first_stamp_, last_stamp_});
             negative_edge = true;
             first_stamp_ = 0;
             last_stamp_ = 0;
@@ -192,7 +200,7 @@ class TriggerBase
     bool enabled_{false};
     uint64_t first_stamp_{0};
     uint64_t last_stamp_{0};
-    std::vector<std::pair<uint64_t, uint64_t>> all_triggers_{};
+    std::vector<TriggerPulse> trigger_pulses_{};
     rclcpp::Duration persistance_duration_{rclcpp::Duration::from_seconds(0)};
     rclcpp::Clock::SharedPtr clock_{nullptr};
     std::shared_ptr<rclcpp::Logger> logger_{nullptr};

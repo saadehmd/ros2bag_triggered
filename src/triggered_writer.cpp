@@ -10,6 +10,7 @@
 #include <ros2bag_triggered/triggered_writer.hpp>
 #include <rosbag2_transport/bag_rewrite.hpp>
 #include <rosbag2_transport/record_options.hpp>
+#include <ros2bag_triggered/trigger_plotter.hpp>
 
 using std::chrono::duration_cast;
 using namespace ros2bag_triggered;
@@ -135,7 +136,7 @@ void TriggeredWriter::write_trigger_stats(const std::string& trigger_stats)
     }
 }
 
-void TriggeredWriter::plot_triggers(const TriggerPulseMap& all_triggers)
+void TriggeredWriter::plot_triggers(const TriggerPulseMap& trigger_pulses)
 {
     if (storage_)  // Plot only after the bag is closed;
         close();
@@ -146,106 +147,10 @@ void TriggeredWriter::plot_triggers(const TriggerPulseMap& all_triggers)
                                                     : metadata_.starting_time.time_since_epoch()};
         TimePointNs bag_end_time{rewrite_options_ ? NanoSec(rewrite_options_->end_time_ns)
                                                   : metadata_.starting_time.time_since_epoch() + metadata_.duration};
-
-        double bag_duration = (bag_end_time - bag_start_time).count() * 1e-9;  // Convert to seconds
-
-        auto timezone = std::chrono::current_zone();
-        auto start_datetime = timezone->to_local(bag_start_time);
-        auto start_datetime_str = std::format("{:%Y-%m-%d %H:%M:%S} {}", start_datetime, timezone->name());
-        auto end_datetime = timezone->to_local(TimePointNs(bag_end_time));
-        auto end_datetime_str = std::format("{:%Y-%m-%d %H:%M:%S} {}", end_datetime, timezone->name());
-
-        // Restrict the x-ticks for ease of plot-visualization.
-        const size_t x_divs = 20;
-        std::vector<double> xticks{};
-        std::vector<double> yticks{0.0, 1.0};
-        for (double x_div = 1; x_div <= x_divs; x_div++)
-        {
-            const double precision = 0.01;
-            auto x_tick = std::round(((x_div * bag_duration) / x_divs) / precision) * precision;
-            xticks.push_back(x_tick);
-        }
-        // @todo: the std::ranges::iota_view::to<vector>() is not available in C++20 and not standardized for all
-        // compilers yet in C++23. So this could be converted to the ranges method instead of for loop in future.
-        const double dt = 0.1;  // 1ms
-        std::vector<double> time_axis;
-        for (double t = 0; t < bag_duration; t += dt)
-        {
-            time_axis.push_back(t);
-        }
-
-        matplotlibcpp::figure_size(720, 480);
-        try
-        {
-            std::vector<std::string> colors = {"red",   "blue", "green", "orange", "purple",
-                                               "brown", "pink", "gray",  "cyan",   "magenta"};
-            while (colors.size() < all_triggers.size())
-            {
-                auto random_color = std::to_string(rand() % 0xFFFFFF + 1);  // Generate random hex colors if needed
-                if (std::find(colors.begin(), colors.end(), "#" + random_color) == colors.end()) continue;
-                colors.push_back("#" + random_color);
-            }
-            size_t color_index = 0;
-
-            //@todo: The pulses need to be sorted in decreasing order of their duratrion, so that the shorter pulses get
-            // plotted later.
-            for (const auto& [trigger_name, trigger_pulses] : all_triggers)
-            {
-                std::vector<double> trigger_axis(time_axis.size(), -1.0);
-                std::cout << "Plotting trigger: " << trigger_name << " with " << trigger_pulses.size() << " pulses."
-                          << std::endl;
-                for (const auto& pulse : trigger_pulses)
-                {
-                    int start_idx = std::round((pulse.first - bag_start_time.time_since_epoch().count()) * 1e-9 / dt);
-                    int end_idx = std::round((pulse.second - bag_start_time.time_since_epoch().count()) * 1e-9 / dt);
-                    start_idx = std::clamp<int>(start_idx, 0, time_axis.size());
-                    end_idx = std::clamp<int>(end_idx, start_idx, time_axis.size());
-
-                    auto x_fill = std::vector<double>(time_axis.begin() + start_idx, time_axis.begin() + end_idx);
-                    std::vector<double> y_fill(x_fill.size(), 1.0);
-
-                    for (size_t i = start_idx; i < end_idx; ++i)
-                    {
-                        trigger_axis.at(i) = 1.0;
-                    }
-
-                    matplotlibcpp::plot(time_axis, trigger_axis,
-                                        {{"label", trigger_name}, {"color", colors[color_index]}});
-                    matplotlibcpp::fill_between(x_fill, std::vector<double>(x_fill.size(), 0.95), y_fill,
-                                                std::map<std::string, std::string>{{"color", colors[color_index]}});
-                }
-
-                color_index++;
-            }
-
-            matplotlibcpp::xlabel("Time (s)");
-            matplotlibcpp::ylabel("Trigger Pulses");
-            matplotlibcpp::xticks(xticks, std::map<std::string, std::string>{{"fontsize", "5"}});
-            matplotlibcpp::yticks(yticks);
-            matplotlibcpp::ylim(0.0, 1.0);
-            matplotlibcpp::legend();
-            matplotlibcpp::suptitle("Bag Start Time: " + start_datetime_str + "\nBag End Time: " + end_datetime_str,
-                                    {{"x", "0.5"}, {"y", "0.9"}, {"ha", "center"}, {"va", "center"}});
-
-            matplotlibcpp::tight_layout();
-            auto triggered_bag_path = config_.bag_root_dir + "/triggered_bags/" + bag_name_;
-            auto trigger_plot_file = triggered_bag_path + "/trigger_plot.pdf";
-            std::cout << "Saving trigger plot to: " << trigger_plot_file << std::endl;
-            matplotlibcpp::save(trigger_plot_file);
-            RCLCPP_INFO(logger_, "Saved trigger plots to: %s", (trigger_plot_file).c_str());
-        }
-        catch (const std::runtime_error& e)
-        {
-            // first, print the generic C++ exception
-            std::cerr << "[C++] matplotlibcpp::bar failed: " << e.what() << "\n";
-            // next, pull the real Python exception out of the interpreter:
-            if (PyErr_Occurred())
-            {
-                PyErr_Print();  // prints Python traceback & error message to stderr
-                PyErr_Clear();
-            }
-            // re-throw for detailed traceback
-            throw;
-        }
+        
+        using path = std::filesystem::path;
+        std::filesystem::path triggered_bag_path = path(config_.bag_root_dir) / "triggered_bags" / bag_name_;
+        std::filesystem::path trigger_plot_file = triggered_bag_path / "trigger_plot.pdf";
+        utils::plot_triggers(trigger_pulses, bag_start_time, bag_end_time, trigger_plot_file);
     }
 }
