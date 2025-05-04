@@ -54,6 +54,13 @@ auto getTriggerStats = [](auto& trigger) -> std::string {
     return ""; // Return empty string for monostate
 };
 
+auto jsonify = [](auto& trigger) -> std::string { 
+    if constexpr (!std::is_same_v<std::decay_t<decltype(trigger)>, std::monostate>) {
+        return trigger.jsonify();
+    }
+    return ""; // Return empty string for monostate
+};
+
 template <typename MsgType>
 auto onSurge = [](auto& trigger, const typename MsgType::SharedPtr msg) -> bool {
     if constexpr (!std::is_same_v<std::decay_t<decltype(trigger)>, std::monostate>) {

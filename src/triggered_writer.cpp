@@ -113,7 +113,8 @@ void TriggeredWriter::open(const rosbag2_storage::StorageOptions& storage_option
     rosbag2_cpp::writers::SequentialWriter::open(storage_options_copy, converter_options);
 }
 
-void TriggeredWriter::write_trigger_stats(const std::string& trigger_stats)
+void TriggeredWriter::write_trigger_stats(const std::string& trigger_stats, 
+                                          const std::unordered_map<std::string, std::string>& trigger_as_json)
 {
     if (storage_)  // Write the stats only after the bag is closed;
         close();
@@ -122,6 +123,7 @@ void TriggeredWriter::write_trigger_stats(const std::string& trigger_stats)
     {
         auto triggered_bag_path = config_.bag_root_dir + "/triggered_bags/" + bag_name_;
         auto trigger_stats_file = triggered_bag_path + "/trigger_stats.txt";
+        auto trigger_json_file = triggered_bag_path + "/trigger_stats.json";
         std::ofstream stats_file(trigger_stats_file);
         if (stats_file.is_open())
         {
@@ -133,6 +135,22 @@ void TriggeredWriter::write_trigger_stats(const std::string& trigger_stats)
             RCLCPP_ERROR(logger_, "Failed to open trigger stats file: %s", (trigger_stats_file).c_str());
         }
         stats_file.close();
+
+        std::ofstream json_file(trigger_json_file);
+        if (json_file.is_open())
+        {
+            RCLCPP_INFO(logger_, "Writing triggers as json to file: %s", (trigger_json_file).c_str());
+            json_file << "{\n";
+            for (const auto& [key, value] : trigger_as_json)
+            {
+                json_file << "\t\"" << key << "\": " << value << ",\n";
+            }
+            json_file << "}\n";
+        }
+        else
+        {
+            RCLCPP_ERROR(logger_, "Failed to open trigger stats file: %s", (trigger_json_file).c_str());
+        }
     }
 }
 

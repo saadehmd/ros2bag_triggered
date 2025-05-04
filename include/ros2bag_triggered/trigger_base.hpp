@@ -87,10 +87,30 @@ class TriggerBase
         for (const auto& pulse : trigger_pulses_)
         {
             auto seconds = std::to_string(rclcpp::Duration(std::chrono::nanoseconds(pulse.end_time_ - pulse.start_time_)).seconds());
-            stats += "\n\tTriggered from: " + std::to_string(pulse.start_time_) + " to " + std::to_string(pulse.end_time_) + " [" + seconds + " sec.s]\n";
+            stats += "\n\tTriggered from: " + 
+                     std::to_string(pulse.start_time_ / 1000000000) + "." + std::to_string(pulse.start_time_ % 1000000000) + 
+                     " to " + 
+                     std::to_string(pulse.end_time_ / 1000000000) + "." + std::to_string(pulse.end_time_ % 1000000000) + 
+                     " [" + seconds + " sec.s]\n";
         }
         stats += "\n\t=======================================================================================\n";
         return stats;
+    }
+
+    std::string jsonify() const
+    {
+        std::string json = "{\n";
+        json += "\t\"msg_type\": \"" + getMsgType() + "\",\n";
+        json += "\t\"persistance_duration\": " + std::to_string(persistance_duration_.seconds()) + ",\n";
+        json += "\t\"use_msg_stamp\": " + std::to_string(use_msg_stamp_) + ",\n";
+        json += "\t\"trigger_pulses\": [\n";
+
+        for (const auto& pulse : trigger_pulses_)
+        {
+            json += "\t\t{\"start_time\": " + std::to_string(pulse.start_time_) + ", \"end_time\": " + std::to_string(pulse.end_time_) + "},\n";
+        }
+        json += "\t]\n}";
+        return json;
     }
 
 

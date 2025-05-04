@@ -144,6 +144,7 @@ protected:
         auto& triggered_writer = get_writer_impl();
         auto base_folder = triggered_writer.get_base_folder();
         std::string trigger_stats;
+        std::unordered_map<std::string, std::string> triggers_as_json;
         bool write_trigger_stats = triggered_writer.get_config().write_trigger_stats;
         TriggerPulseMap all_trigger_pulses;
 
@@ -158,21 +159,22 @@ protected:
             if (write_trigger_stats)
             {
                 trigger_stats += std::visit(getTriggerStats, trigger.second);
-            }
-            std::string trigger_name = std::visit(getName, trigger.second);
-            auto trigger_pulses = std::visit(getTriggerPulses, trigger.second);
-            if (!trigger_pulses.empty())
-            {
-                all_trigger_pulses[trigger_name] = std::visit(getTriggerPulses, trigger.second);
-            }
             
+                std::string trigger_name = std::visit(getName, trigger.second);
+                auto trigger_pulses = std::visit(getTriggerPulses, trigger.second);
+                if (!trigger_pulses.empty())
+                {
+                    all_trigger_pulses[trigger_name] = std::visit(getTriggerPulses, trigger.second);
+                }
+                triggers_as_json[trigger_name] = std::visit(jsonify, trigger.second);
+            }
             std::visit(resetTrigger, trigger.second);
         }
 
         triggered_writer.set_crop_points(crop_points_.first, crop_points_.second);
         crop_points_ = std::make_pair(-1, -1); //Reset crop points for the next bag.
         writer_.close();
-        triggered_writer.write_trigger_stats(trigger_stats);
+        triggered_writer.write_trigger_stats(trigger_stats, triggers_as_json);
         triggered_writer.plot_triggers(all_trigger_pulses);
     }
 
