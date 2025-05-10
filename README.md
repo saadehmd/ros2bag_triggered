@@ -1,13 +1,13 @@
 # ros2bag_triggered
 A collection of helper classes for rosbag2 focused mainly at providing triggering functionality with ros2 bags.
 
-## Brief Introduction:-   
+## Brief Introduction:  
 This package is aimed at extending the functionality provided by [rosbag2_snapshot](https://github.com/gaia-platform/rosbag2_snapshot). The idea of keeping a small data-buffer of recorded data and being able to trigger, when to save this buffered  bag (instead of an eternally running rosbag recorder) is insanely helpful in a lot of production environments where even minutes worth recorded rosbags can turn into gigabytes of data or when routine clean-ups of disk-space are not practical. 
 
 Yet, even with a handy tool like rosbag_snapshot, users ought to handle the triggering logic themselves. Writing it either as separate client nodes, monitoring data on rostopics-of-interest or as extra logic within their own nodes publishing those topics.
 This can easily get out-of-hands, in an environment where you can have tens of rostopics-of-interests (whether being recorded or simply acting as mere triggers for saving the recording.). Besides triggering, one might also want to analyse why a certain bag was triggered and what kind of triggers have been produced over previous N recording sessions. 
 
-## Objectives:-  
+## Objectives:
 Solving the above problems partially or entirely is the main motivation behind this project. 
 
 The core idea is to provide a convinient way to :-
@@ -19,14 +19,20 @@ The core idea is to provide a convinient way to :-
 - Combine multiple triggers into a single module and delegate the tasks of initialization, resetting, and aggregating these triggers to a dedicated recorder node. 
 - Plot triggers or collect important statistics on the triggered ros-bags 
 
-## Useage:-
+## How triggering works:
+Every trigger essentially registers a persistant occurance of a triggering condition. The `TriggerRecorderNode` owns and manages these triggers and binds them to the respective topic-subscribers being used to monitor the triggering condition. `TriggerRecorderNode` records a bag for a pre-configured duration and buffers all the triggers in this duration. At the end, this bag is marked as "Triggered" and moved to user-configured directory for stashing all the triggered bags. The `TriggerRecorderNode` then resets all the triggers and opens a new bag for recording.
+
+## Bag-cropping:
+The users also have option to crop only the interesting(triggered) duration from the whole bag. This cropped section of the bag is from ```start_time``` of the earliest occuring trigger to the ```ènd_time``` of latest occuring trigger. Users can also add a sort of padding or gap on each end of crop point. This is useful because, the events leading upto the point of a trigger situation might be equally interesting as the triggering situation itself. This is configured by the ```crop_gap``` parameter explained in following sections.
+
+## Useage:
 Working with ros2bag_triggered follows a simple paradigm:-
 1. You implement your "triggering-logic" to a custom `TriggerType` inheriting the interface from `TriggerBase` class.  
 2. You write some basic configuration for each trigger into a single `config.yaml`
 3. You hand over your custom TriggerTypes to the templated `TriggeredRecorderNode<std::variant<YourTriggerTypes>>` class. This class safely initializes your custom trigger types based on the `config.yaml` file and manages their lifecycle within the recorder.
 4. You use this `TriggeredRecorderNode<>` class instance anywhere inside your code, with either single-executor, multi-executor or composable-nodes setup.
 
-### Implementing & Configuring Custom TriggerTypes
+### Implementing & Configuring Custom TriggerTypes:
 Refer to : [examples](examples/README.md)
 
 ### Configuring TriggeredRecorderNode Params:
@@ -92,5 +98,25 @@ ros2 run ros2bag_triggered example_node
 # Run the dummy trigger generator script
 python test_utils/dummy_trigger_generator.py
 ```
+### Trigger stats and plots: 
+If you have enabled ```write_trigger_stats``` option, the writer will output a bunch of analytical reports for you from the triggers that occured during each bag and save those in the bag folder itself. You should have following in the bag folder if it was triggered:-
+1. ```metadata.yaml```
+2. N number of bag files 
+3. ```trigger_stats.txt```  (This is a human-readable report of trigger pulses and their durations for a quick scan).
+4. ```trigger_plot.pdf```   (This is a visual report of trigger pulses).
+5. ```trigger_stats.json``` (This is a record of triggers readable by some python script, useful for your own plotting/analysis).
+
+#### Example Trigger Stats Plot:
+<img src="./plot_example.png" width="960" height="640" />
+
+#### Example trigger_stats.txt:
+![Trigger Stats txt](stats_txt_example.png)
+
+#### Example trigger_stats.json:
+![Trigger Stats json](stats_json_example.png)
+
 
 ### ToDo:
+- Support registering a single trigger type to multiple topics.
+- Provide a self-unlatch configuration for triggers.
+- Benchmark bag-cropping/rewrite for huge bagfiles. Move to a separate thread if it creates a bottleneck for bag switch-over.
