@@ -42,8 +42,10 @@ class TriggerBase
         // on problems parsing the configuration from yaml. Inclduing missing key-value pairs or wrong access-types.
         try
         {
-            persistance_duration_ = rclcpp::Duration::from_seconds(node["persistance_duration"].as<double>());
-            use_msg_stamp_ = node["use_msg_stamp"].as<bool>();
+            persistance_duration_ = node["persistance_duration"]
+                                        ? rclcpp::Duration::from_seconds(node["persistance_duration"].as<double>())
+                                        : rclcpp::Duration::from_seconds(0);
+            use_msg_stamp_ = node["persistance_duration"]  ? node["use_msg_stamp"].as<bool>() : false;
             //The base class is still responsible for calling the derived class's configuration of conditional parameters.
             //This is so that the derived class' implementation of yaml-configuration is minimal i.e.; The initialization 
             //of required parameters and exception-handling is all done in the base class.
@@ -197,6 +199,7 @@ class TriggerBase
     // Nevertheless, it is enforced so that the initialization of the "Conditional parameters" is always delegated to the derived class.
     virtual void configureConditionalParams(const YAML::Node& node) = 0;
 
+ private:
     // Utility function: Return message timestamp if message has header
     template <typename MsgT = T>
     typename std::enable_if<type_traits::HasHeader<MsgT>::value, rclcpp::Time>::type
