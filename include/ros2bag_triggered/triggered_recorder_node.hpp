@@ -207,7 +207,7 @@ protected:
                         if(trigger_msg_type != msg_type)
                         {
                             RCLCPP_ERROR(get_logger(), "Trigger type %s does not have the expected message-type %s but instead has the msg-type: %s", 
-                                                                                    trigger_type.c_str(), msg_type.c_str(), trigger_msg_type.c_str());
+                                                                                    trigger_type.c_str(), trigger_msg_type.c_str(), msg_type.c_str());
                             throw std::runtime_error("Wrong msg-type on the trigger: " + trigger_type);
                         }
                         triggers.push_back(trigger);

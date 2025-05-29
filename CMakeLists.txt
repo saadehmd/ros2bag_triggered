@@ -21,6 +21,9 @@ find_package(rosbag2 REQUIRED)
 find_package(rosgraph_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(trajectory_msgs REQUIRED)
 find_package(ament_index_cpp REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(matplotlib_cpp REQUIRED)
@@ -30,6 +33,9 @@ add_library(${PROJECT_NAME}_examples SHARED
   examples/navsat_invalid_fix_trigger.cpp
   examples/zone_trigger_with_pose_stamped.cpp
   examples/zone_trigger_with_navsat_fix.cpp
+  examples/pose_covariance_trigger.cpp
+  examples/velocity_trigger.cpp
+  examples/joint_effort_trigger.cpp
 )
 
 add_library(${PROJECT_NAME} SHARED
@@ -48,6 +54,8 @@ set(ament_cmake_dependencies
   rosgraph_msgs
   geometry_msgs
   sensor_msgs
+  nav_msgs
+  trajectory_msgs
   ament_index_cpp
 )
 

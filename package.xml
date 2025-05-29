@@ -1,4 +1,3 @@
-<?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>ros2bag_triggered</name>
@@ -12,8 +11,15 @@
   <depend>rclcpp</depend>
   <depend>geometry_msgs</depend>
   <depend>sensor_msgs</depend>  
+  <depend>std_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>rosbag2_cpp</depend>
+  <depend>trajectory_msgs</depend>
 
   <test_depend>ament_gtest</test_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>numpy</exec_depend>
+  <exec_depend>matplotlib</exec_depend>
   <!--<test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend> -->
 

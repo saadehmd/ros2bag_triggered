@@ -48,10 +48,11 @@ inline bool trigger_comparator(const PulsePlot& a, const PulsePlot& b)
 inline void sort_trigger_pulses(const TriggerPulseMap& trigger_pulse_map, TriggerPulsePlots& trigger_pulse_plots)
 {
     trigger_pulse_plots.reserve(trigger_pulse_map.size());
-    constexpr int max_colors{16777215}; // 24-bit RGB color represented in hex by 0xFFFFFF
+    constexpr int max_colors_16bit{16777215/2}; // 16-bit RGB color represented in hex by 0xFFFFFF, for using brighter colors
+    constexpr int max_colors_24bit{16777215}; // 24-bit RGB color represented in hex by 0xFFFFFF, for using full color range
     for(const auto& [trigger_name, trigger_pulses] : trigger_pulse_map)
     {
-        std::string color = "#" + to_hex(trigger_pulse_map.hash_function()(trigger_name) % max_colors);
+        std::string color = "#" + to_hex(trigger_pulse_map.hash_function()(trigger_name) % max_colors_16bit);
         for (const auto& pulse : trigger_pulses)
         {
             trigger_pulse_plots.emplace_back(trigger_name, color, pulse);

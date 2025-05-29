@@ -1,11 +1,12 @@
-#include <iostream>
 #include <examples/battery_health_trigger.hpp>
 #include <examples/navsat_invalid_fix_trigger.hpp>
 #include <examples/zone_trigger_with_pose_stamped.hpp>
 #include <examples/zone_trigger_with_navsat_fix.hpp>
+#include <examples/pose_covariance_trigger.hpp>
+#include <examples/velocity_trigger.hpp>
+#include <examples/joint_effort_trigger.hpp>
+
 #include <ros2bag_triggered/triggered_recorder_node.hpp>
-#include <std_msgs/msg/string.hpp>
-#include <string>
 
 using namespace ros2bag_triggered;
 
@@ -15,7 +16,10 @@ using MyVariant = std::variant<std::monostate,
                                examples::ZoneTriggerWithPoseStamped, 
                                examples::ZoneTriggerWithNavSatFix, 
                                examples::NavSatInvalidFixTrigger, 
-                               examples::BatteryHealthTrigger>;
+                               examples::BatteryHealthTrigger,
+                               examples::PoseCovarianceTrigger,
+                               examples::VelocityTrigger,
+                               examples::JointEffortTrigger>;
 
 int main(int argc, char** argv) 
 {
