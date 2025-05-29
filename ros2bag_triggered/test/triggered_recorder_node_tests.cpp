@@ -1,11 +1,10 @@
 #include <ros2bag_triggered/triggered_recorder_node.hpp>
 #include <test/test_helpers.hpp>
 #include <gtest/gtest.h>
-#include <examples/battery_health_trigger.hpp>
 
 using namespace ros2bag_triggered;
 
-using TriggerVariant = std::variant<std::monostate, tests::EmptyTrigger, examples::BatteryHealthTrigger>;
+using TriggerVariant = std::variant<std::monostate, tests::EmptyTrigger, tests::BatteryHealthTrigger>;
 
 class TriggeredRecorderNodeTestHelper : public TriggeredRecorderNode<TriggerVariant>
 {

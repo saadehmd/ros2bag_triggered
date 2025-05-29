@@ -23,7 +23,7 @@ The core idea is to provide a convinient way to :-
 Every trigger essentially registers a persistant occurance of a triggering condition. The `TriggerRecorderNode` owns and manages these triggers and binds them to the respective topic-subscribers being used to monitor the triggering condition. `TriggerRecorderNode` records a bag for a pre-configured duration and buffers all the triggers in this duration. At the end, this bag is marked as "Triggered" and moved to user-configured directory for stashing all the triggered bags. The `TriggerRecorderNode` then resets all the triggers and opens a new bag for recording.
 
 ## Bag-cropping:
-The users also have option to crop only the interesting(triggered) duration from the whole bag. This cropped section of the bag is from ```start_time``` of the earliest occuring trigger to the ```ènd_time``` of latest occuring trigger. Users can also add a sort of padding or gap on each end of crop point. This is useful because, the events leading upto the point of a trigger situation might be equally interesting as the triggering situation itself. This is configured by the ```crop_gap``` parameter explained in following sections.
+The users also have option to crop only the interesting(triggered) duration from the whole bag. This cropped section of the bag is from ```start_time``` of the earliest occuring trigger to the ```end_time``` of latest occuring trigger. Users can also add a sort of padding or gap on each end of crop point. This is useful because, the events leading upto the point of a trigger situation might be equally interesting as the triggering situation itself. This is configured by the ```crop_gap``` parameter explained in following sections.
 
 ## Useage:
 Working with ros2bag_triggered follows a simple paradigm:-
@@ -31,9 +31,10 @@ Working with ros2bag_triggered follows a simple paradigm:-
 2. You write some basic configuration for each trigger into a single `config.yaml`
 3. You hand over your custom TriggerTypes to the templated `TriggeredRecorderNode<std::variant<YourTriggerTypes>>` class. This class safely initializes your custom trigger types based on the `config.yaml` file and manages their lifecycle within the recorder.
 4. You use this `TriggeredRecorderNode<>` class instance anywhere inside your code, with either single-executor, multi-executor or composable-nodes setup.
+5. You can have some `TriggerType`s that are compiled within `TriggeredRecorderNode<>` as a template arg but still left-out from the `topic_config.yaml`. These would simply be disabled triggers in the node. But you cannot do the opposite i.e.; If a `TriggerType` config is in the `topic_config.yaml`, it should not be missing from the template args, otherwise you'll get runtime error.
 
 ### Implementing & Configuring Custom TriggerTypes:
-Refer to : [examples](examples/README.md)
+Refer to : [examples](examples/)
 
 ### Configuring TriggeredRecorderNode Params:
 ```yaml
@@ -75,12 +76,13 @@ write_trigger_stats: true                   # If true, the trigger stats and plo
 
 ### Using TriggeredRecordNode with the custom TriggerTypes
 Refer to a simple triggered_recorder_node [example](examples/main.cpp) using [custom](include/examples/) TriggerTypes:-
-- [BatteryHealthTrigger](examples/src/battery_health_trigger.cpp) 
-- [NavSatInvalidFixTrigger](examples/src/navsat_invalid_fix.cpp) 
-- [ZoneTriggerWithNavSatFix](examples/src/zone_trigger_with_navsat_fix.cpp) 
-- [ZoneTriggerWithPoseStamped](examples/src/zone_trigger_with_pose_stamped.cpp) 
-- [VelocityTrigger] ()
-- [ProximityTrigger] ()
+- [BatteryHealthTrigger](examples/battery_health_trigger.cpp) 
+- [NavSatInvalidFixTrigger](examples/navsat_invalid_fix.cpp) 
+- [ZoneTriggerWithNavSatFix](examples/zone_trigger_with_navsat_fix.cpp) 
+- [ZoneTriggerWithPoseStamped](examples/zone_trigger_with_pose_stamped.cpp) 
+- [VelocityTrigger](examples/velocity_trigger.cpp)
+- [JointEffortTrigger](examples/joint_effort_trigger.cpp)
+- [PoseCovarianceTrigger](examples/pose_covariance_trigger.cpp)
 
 ### Build & Run the example TriggeredRecordNode:
 ```bash

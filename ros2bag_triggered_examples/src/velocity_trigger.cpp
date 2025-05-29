@@ -1,4 +1,4 @@
-#include <examples/velocity_trigger.hpp>
+#include <ros2bag_triggered_examples/velocity_trigger.hpp>
 
 using namespace ros2bag_triggered::examples;
 

@@ -1,4 +1,4 @@
-#include <examples/battery_health_trigger.hpp>
+#include <ros2bag_triggered_examples/battery_health_trigger.hpp>
 
 using namespace ros2bag_triggered::examples;
 
@@ -7,7 +7,7 @@ bool BatteryHealthTrigger::isTriggered(const sensor_msgs::msg::BatteryState::Sha
     return msg->power_supply_health != sensor_msgs::msg::BatteryState::POWER_SUPPLY_HEALTH_GOOD;
 }
 
-void BatteryHealthTrigger::configureConditionalParams(const YAML::Node& node) 
+void BatteryHealthTrigger::configureConditionalParams(const YAML::Node&) 
 {  
     // No conditional params required for this trigger.
 }

@@ -100,20 +100,22 @@ To create a custom `TriggerType`, follow these steps:
 The triggers are configured in the file ```topic_config.yaml```. This file is a list of topics where each topic has it's own configuration some of which is optional while some is required.
 
 1. Each topic requires the field ```msg_type``` which cannot be left-out.
-2. The field ```triggers``` can be left-out if a topic is only recorded and not used for any triggers.
-3. Under each  ```triggers``` field, you have to configure a list of triggers.
-4. Each configured trigger under ```triggers``` requires the field ```type``` which cannot be left-out. This field should match exactly the name returned by the ```getName()``` function for the ```TriggerType``` implemented in the **Writing Your Custom TriggerType** section. 
-5. Each configured trigger under ```triggers``` has an optional field ```persistance_duration```, used to set it's persistance-duration in seconds. If left-out it defaults to zero.
-6. Each configured trigger under ```triggers``` has an optional field ```use_msg_stamp```, used to indicate whether this triggers uses stamp from it's own header or from node clock. If left-out or if the msg type is header-less, this defaults to ```False```.
-7. The topic's ```msg_type``` and trigger's underlying ```<msg_type>``` should match at run-time, otherwise you'll get a runtime error. 
-8. All the trigger_types configured here should be part of the ```TriggerVariant``` provided to ```TriggeredRecorderNode``` as template argument. This is discussed more in [Useage](../README.md) section on the main readme.
+2. Under each topic an optional field ```record``` specifies whether the topic should be recorded in the bag or not. If not specified, it defaults to true. 
+3. The field ```triggers``` can be left-out if a topic is only recorded and not used for any triggers. If both ```record``` field is set to ```False``` and no ```triggers``` field is present, the topic will be ignored entirely and not subscribed to.
+4. Under each  ```triggers``` field, you have to configure a list of triggers.
+5. Each configured trigger under ```triggers``` requires the field ```type``` which cannot be left-out. This field should match exactly the name returned by the ```getName()``` function for the ```TriggerType``` implemented in the **Writing Your Custom TriggerType** section. 
+6. Each configured trigger under ```triggers``` has an optional field ```persistance_duration```, used to set it's persistance-duration in seconds. If left-out it defaults to zero i.e.; a trigger that doesn't need persistance and can activate on the very first triggering msg.
+7. Each configured trigger under ```triggers``` has an optional field ```use_msg_stamp```, used to indicate whether this trigger uses stamp from it's own header or from node clock. If left-out or if the msg type is header-less, this defaults to ```False```.
+8. The topic's ```msg_type``` and trigger's underlying ```<msg_type>``` should match at run-time, otherwise you'll get a runtime error. 
+9. All the trigger_types configured here should be part of the ```TriggerVariant``` provided to ```TriggeredRecorderNode``` as template argument. This is discussed more in [Useage](../README.md) section on the main readme.
+10. The triggers can have additional fields which are used as the so-called ```conditional_params``` described in previous section.
 
     ```yaml
 
     # Example of topics triggered but not recorded 
     /robot/battery_state:
     msg_type: sensor_msgs/msg/BatteryState
-    record: False                   # Defaults to false if not provided
+    record: False                   # Defaults to True if not provided
     triggers:
         - type: BatteryHealthTrigger
         persistance_duration: 0.1   # Defaults to 0 if not provided
@@ -127,6 +129,7 @@ The triggers are configured in the file ```topic_config.yaml```. This file is a 
         - type: ZoneTriggerWithNavSatFix
         use_msg_stamp: true
         persistance_duration: 0.5
+        # 'trigger_zone' is an example of conditional_params
         trigger_zone: {"latitude_max": 34.55, "latitude_min": 34.15, "longitude_max": 122.55, "longitude_min": 122.15, "altitude_max": 100.0, "altitude_min": 10.0}
         - type: NavSatInvalidFixTrigger
         persistance_duration: 0.1

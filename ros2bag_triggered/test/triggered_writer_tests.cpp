@@ -3,6 +3,7 @@
 #include <rosbag2_storage/bag_metadata.hpp>
 #include <rosbag2_cpp/writer.hpp>
 #include <rosbag2_cpp/reader.hpp>
+#include <std_msgs/msg/bool.hpp>
 
 using namespace ros2bag_triggered;
 using namespace std::chrono_literals;

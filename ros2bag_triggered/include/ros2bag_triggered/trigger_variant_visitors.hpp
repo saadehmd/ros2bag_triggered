@@ -94,7 +94,6 @@ auto configureTrigger = [](auto& trigger, const YAML::Node& config) {
             throw std::runtime_error("Trigger type: " + trigger.getName() + 
                                      " is already registered to a topic. Registering single trigger-type to multiple topics is not yet supported.");
         }
-        using TriggerT = typename std::remove_reference<decltype(trigger)>::type;
         trigger.fromYaml(config);
         trigger.setEnabled(true);
     }

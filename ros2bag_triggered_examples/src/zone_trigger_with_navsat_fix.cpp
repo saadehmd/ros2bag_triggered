@@ -1,4 +1,4 @@
-#include <examples/zone_trigger_with_navsat_fix.hpp>
+#include <ros2bag_triggered_examples/zone_trigger_with_navsat_fix.hpp>
 
 using namespace ros2bag_triggered::examples;
 

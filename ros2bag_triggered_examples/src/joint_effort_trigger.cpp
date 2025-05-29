@@ -1,4 +1,4 @@
-#include <examples/joint_effort_trigger.hpp>
+#include <ros2bag_triggered_examples/joint_effort_trigger.hpp>
 
 using namespace ros2bag_triggered::examples;
 

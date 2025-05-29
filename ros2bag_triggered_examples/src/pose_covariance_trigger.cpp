@@ -1,4 +1,4 @@
-#include <examples/pose_covariance_trigger.hpp>
+#include <ros2bag_triggered_examples/pose_covariance_trigger.hpp>
 
 using namespace ros2bag_triggered::examples;
 

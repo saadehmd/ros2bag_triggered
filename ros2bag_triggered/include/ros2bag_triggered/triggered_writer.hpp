@@ -7,7 +7,6 @@
 #include <rosbag2_cpp/converter_options.hpp>
 #include <ament_index_cpp/get_package_prefix.hpp>
 #include <rosbag2_storage/default_storage_id.hpp>
-#include <std_msgs/msg/bool.hpp>
 #include <filesystem>
 #include <ros2bag_triggered/trigger_base.hpp>
 

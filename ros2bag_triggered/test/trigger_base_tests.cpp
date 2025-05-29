@@ -1,5 +1,4 @@
 #include <test/test_helpers.hpp>
-#include <examples/battery_health_trigger.hpp>
 #include <gtest/gtest.h>
 
 constexpr double match_threshold{1e-4}; // seconds
@@ -61,9 +60,9 @@ TEST(TiggerWithHeaderTests, test_time_source_initialization)
 {
     auto logger = std::make_shared<rclcpp::Logger>(rclcpp::get_logger("HeaderTimeSourceTest"));
     auto clock = std::make_shared<rclcpp::Clock>(RCL_ROS_TIME);
-    EXPECT_THROW(ros2bag_triggered::examples::BatteryHealthTrigger(1, nullptr, logger, /*use_time_stamp=*/false), std::runtime_error);
-    EXPECT_NO_THROW(ros2bag_triggered::examples::BatteryHealthTrigger(1, nullptr, logger, /*use_time_stamp=*/true));
-    EXPECT_NO_THROW(ros2bag_triggered::examples::BatteryHealthTrigger(1, clock, logger, /*use_time_stamp=*/false));
+    EXPECT_THROW(ros2bag_triggered::tests::BatteryHealthTrigger(1, nullptr, logger, /*use_time_stamp=*/false), std::runtime_error);
+    EXPECT_NO_THROW(ros2bag_triggered::tests::BatteryHealthTrigger(1, nullptr, logger, /*use_time_stamp=*/true));
+    EXPECT_NO_THROW(ros2bag_triggered::tests::BatteryHealthTrigger(1, clock, logger, /*use_time_stamp=*/false));
 }
 
 TEST(TiggerWithHeaderTests, test_trigger_stamps)
@@ -73,9 +72,9 @@ TEST(TiggerWithHeaderTests, test_trigger_stamps)
     auto clock = std::make_shared<rclcpp::Clock>(RCL_ROS_TIME);
     const float persistance_duration{0.25};
     const float buffer_duration{0.05}; // This is added so that the test loop doesn't run slighlty short of the required persistance duration.
-    
-    auto triggers_with_stamps = ros2bag_triggered::examples::BatteryHealthTrigger(persistance_duration, clock, logger, /*use_time_stamp=*/true);
-    auto triggers_with_clock = ros2bag_triggered::examples::BatteryHealthTrigger(persistance_duration, clock, logger, /*use_time_stamp=*/false);
+
+    auto triggers_with_stamps = ros2bag_triggered::tests::BatteryHealthTrigger(persistance_duration, clock, logger, /*use_time_stamp=*/true);
+    auto triggers_with_clock = ros2bag_triggered::tests::BatteryHealthTrigger(persistance_duration, clock, logger, /*use_time_stamp=*/false);
 
     triggers_with_stamps.setEnabled(true);
     triggers_with_clock.setEnabled(true);

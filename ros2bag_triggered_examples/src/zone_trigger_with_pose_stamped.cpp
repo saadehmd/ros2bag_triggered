@@ -1,4 +1,4 @@
-#include <examples/zone_trigger_with_pose_stamped.hpp>
+#include <ros2bag_triggered_examples/zone_trigger_with_pose_stamped.hpp>
 
 using namespace ros2bag_triggered::examples;
 

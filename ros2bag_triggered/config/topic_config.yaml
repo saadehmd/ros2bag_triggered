@@ -1,0 +1,55 @@
+
+#The trigger 'type' field should have the exact name that each trigger-class implements in it's interface.
+#'record' field under each topic is used to enable/disable recording of that topic. By default, topic is recorded, if this field is not present.
+
+/robot/battery_state:
+  msg_type: sensor_msgs/msg/BatteryState
+  record: true
+  triggers:
+    - type: BatteryHealthTrigger
+      persistance_duration: 0.3
+      use_msg_stamp: true
+
+/robot/pose:
+  msg_type: geometry_msgs/msg/PoseStamped
+  triggers:
+    - type: ZoneTriggerWithPoseStamped
+      persistance_duration: 0.5
+      use_msg_stamp: false
+      trigger_zone: {"min_x": 0.0, "max_x": 10.0, "min_y": 0.0, "max_y": 5.0, "min_z": 0, "max_z": 100.0}
+
+/robot/fix:
+  msg_type: sensor_msgs/msg/NavSatFix
+  record: true
+  triggers:
+    - type: ZoneTriggerWithNavSatFix
+      use_msg_stamp: true
+      persistance_duration: 0.1
+      trigger_zone: {"latitude_max": 90.0, "latitude_min": 0.0, "longitude_max": 120.0, "longitude_min": 100.0, "altitude_max": 100.0, "altitude_min": 10.0}
+    - type: NavSatInvalidFixTrigger
+      persistance_duration: 0.5
+      use_msg_stamp: false
+  
+/robot/odometry:
+  record: True
+  msg_type: nav_msgs/msg/Odometry
+  triggers:
+    - type: PoseCovarianceTrigger
+      persistance_duration: 0.2
+      use_msg_stamp: true
+      position_covariance_threshold: 0.01
+      orientation_covariance_threshold: 0.001
+    - type: VelocityTrigger
+      persistance_duration: 0.1
+      use_msg_stamp: true
+      linear_velocity_threshold: 1.0
+      angular_velocity_threshold: 0.1
+
+/robot/joint_trajectories:
+  msg_type: trajectory_msgs/msg/JointTrajectory
+  record: true
+  triggers:
+    - type: JointEffortTrigger
+      persistance_duration: 0.5
+      use_msg_stamp: true
+      joint_effort_threshold: 9.8

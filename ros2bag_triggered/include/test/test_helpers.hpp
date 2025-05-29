@@ -3,6 +3,7 @@
 
 #include <ros2bag_triggered/trigger_base.hpp>
 #include <std_msgs/msg/bool.hpp>
+#include <sensor_msgs/msg/battery_state.hpp>
 
 namespace ros2bag_triggered::tests
 {
@@ -31,12 +32,37 @@ public:
         return "EmptyTrigger";
     }
 
-    void configureConditionalParams(const YAML::Node& node) override
+    void configureConditionalParams(const YAML::Node&) override
     {
         // No conditional params required for this trigger.
     }
         
 };
+
+class BatteryHealthTrigger : public TriggerBase<sensor_msgs::msg::BatteryState>
+{
+public:
+    explicit BatteryHealthTrigger(double persistance_duration, const rclcpp::Clock::SharedPtr clock, const std::shared_ptr<rclcpp::Logger> logger, bool use_msg_stamp)
+    : TriggerBase(persistance_duration, clock, logger, use_msg_stamp) {}
+
+    BatteryHealthTrigger() = delete;
+    ~BatteryHealthTrigger() override = default;
+
+    
+    bool isTriggered(const sensor_msgs::msg::BatteryState::SharedPtr msg) const override
+    {
+        return msg->power_supply_health != sensor_msgs::msg::BatteryState::POWER_SUPPLY_HEALTH_GOOD;
+    }
+
+    std::string getName() const override
+    {
+        return "BatteryHealthTrigger";
+    }
+    
+private:
+    void configureConditionalParams(const YAML::Node&) override{}
+};
+
 }  // namespace ros2bag_triggered::tests
 
 #endif  // TEST_HELPERS_HPP
