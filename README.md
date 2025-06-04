@@ -34,7 +34,7 @@ Working with ros2bag_triggered follows a simple paradigm:-
 5. You can have some `TriggerType`s that are compiled within `TriggeredRecorderNode<>` as a template arg but still left-out from the `topic_config.yaml`. These would simply be disabled triggers in the node. But you cannot do the opposite i.e.; If a `TriggerType` config is in the `topic_config.yaml`, it should not be missing from the template args, otherwise you'll get runtime error.
 
 ### Implementing & Configuring Custom TriggerTypes:
-Refer to : [examples](examples/)
+Refer to : [examples](ros2bag_triggered_examples/)
 
 ### Configuring TriggeredRecorderNode Params:
 ```yaml
@@ -75,31 +75,54 @@ write_trigger_stats: true                   # If true, the trigger stats and plo
 ```
 
 ### Using TriggeredRecordNode with the custom TriggerTypes
-Refer to a simple triggered_recorder_node [example](examples/main.cpp) using [custom](include/examples/) TriggerTypes:-
-- [BatteryHealthTrigger](examples/battery_health_trigger.cpp) 
-- [NavSatInvalidFixTrigger](examples/navsat_invalid_fix.cpp) 
-- [ZoneTriggerWithNavSatFix](examples/zone_trigger_with_navsat_fix.cpp) 
-- [ZoneTriggerWithPoseStamped](examples/zone_trigger_with_pose_stamped.cpp) 
-- [VelocityTrigger](examples/velocity_trigger.cpp)
-- [JointEffortTrigger](examples/joint_effort_trigger.cpp)
-- [PoseCovarianceTrigger](examples/pose_covariance_trigger.cpp)
+Refer to a simple triggered_recorder_node [example](./ros2bag_triggered_examples/src/main.cpp) using [custom](include/examples/) TriggerTypes:-
+- [BatteryHealthTrigger](./ros2bag_triggered_examples/src/battery_health_trigger.cpp) 
+- [NavSatInvalidFixTrigger](./ros2bag_triggered_examples/src/navsat_invalid_fix_trigger.cpp) 
+- [ZoneTriggerWithNavSatFix](./ros2bag_triggered_examples/src/zone_trigger_with_navsat_fix.cpp) 
+- [ZoneTriggerWithPoseStamped](./ros2bag_triggered_examples/src/zone_trigger_with_pose_stamped.cpp) 
+- [VelocityTrigger](./ros2bag_triggered_examples/src/velocity_trigger.cpp)
+- [JointEffortTrigger](./ros2bag_triggered_examples/src/joint_effort_trigger.cpp)
+- [PoseCovarianceTrigger](./ros2bag_triggered_examples/src/pose_covariance_trigger.cpp)
 
 ### Build & Run the example TriggeredRecordNode:
+There're few important dependencies required to build this `ros2bag_triggered` package:-
+- python==2.7 or python>=3.6 recommended
+- matplotlib-python
+- numpy-python
+- matplotlibcpp
+
+As per the recommendation from [Matplotlibcpp](https://github.com/lava/matplotlib-cpp) install python dependencies as follows:-
 ```bash
-# Build the package
-colcon build --packages-select ros2bag_triggered
+sudo apt-get install python3-matplotlib python3-numpy 
+``` 
+or
+```bash
+pip install matplotlib numpy
+```
+
+Once you have above python dependencies, clone the [Matplotlibcpp](https://github.com/lava/matplotlib-cpp) repo, build and install it:-
+```bash
+git clone https://github.com/lava/matplotlib-cpp
+cd matplotlib-cpp && mkdir build && cd build
+cmake .. && cmake --build .
+cmake --install .
+```
+
+Some useful [resources](https://matplotlib-cpp.readthedocs.io/en/latest/examples.html) on matplotlibcpp useage, installation or compilation issues.
+
+```bash
+# Navigate to your ros2_ws dir, clone this repo and build the packages in this project with
+colcon build --symlink-install --packages-select ros2bag_triggered ros2bag_triggered_examples ros2bag_triggered_tester
 
 # Run the example node
 ros2 run ros2bag_triggered example_node
-
-# Note: If running the following script inside a Docker container, ensure GUI access is enabled.
-# You can enable GUI access by using X11-forwarding:
-# Refer: https://medium.com/@priyamsanodiya340/running-gui-applications-in-docker-containers-a-step-by-step-guide-335b54472e4b
-# Alternatively, run the following script outside the container if you're comfortable using "docker run --network=host" 
-
-# Run the dummy trigger generator script
-python test_utils/dummy_trigger_generator.py
 ```
+Run the `trigger_tester` utility from [ros2bag_triggered_test](./ros2bag_triggered_tester).
+Play around a bit with the triggers in the trigger_tester GUI and then shut down the the `example_node`. 
+Navigate to the path configured in [example writer_config](./ros2bag_triggered_examples/config/writer_config.yaml) under `bag_root_dir` field. You should have `triggered_bags` folder and your last recorded bag there. 
+
+Check the metadata.yaml and see if the bag has the full recorded duration or cropped duration. Also, check if the msg counts seem right on the topics that were configured to be recorded in [example topic_config](./ros2bag_triggered_examples/config/topic_config.yaml)
+
 ### Trigger stats and plots: 
 If you have enabled ```write_trigger_stats``` option, the writer will output a bunch of analytical reports for you from the triggers that occured during each bag and save those in the bag folder itself. You should have following in the bag folder if it was triggered:-
 1. ```metadata.yaml```
@@ -110,6 +133,8 @@ If you have enabled ```write_trigger_stats``` option, the writer will output a b
 
 #### Example Trigger Stats Plot:
 <img src="./plot_example.png" width="960" height="640" />
+<img src="./plot_example2.png" width="960" height="640" />
+<img src="./plot_example3.png" width="960" height="640" />
 
 #### Example trigger_stats.txt:
 ![Trigger Stats txt](stats_txt_example.png)
