@@ -18,15 +18,15 @@ public:
     ~PoseCovarianceTrigger() override = default;
     PoseCovarianceTrigger() = delete;
 
-    bool isTriggered(const nav_msgs::msg::Odometry::SharedPtr msg) const override ;
+    bool is_triggered(const nav_msgs::msg::Odometry::SharedPtr msg) const override ;
 
-    std::string getName() const override
+    std::string get_name() const override
     {
         return "PoseCovarianceTrigger";
     }
 
 private:
-    void configureConditionalParams(const YAML::Node& node) override;
+    void configure_conditional_params(const YAML::Node& node) override;
 
     double position_covariance_threshold_;
     double orientation_covariance_threshold_;

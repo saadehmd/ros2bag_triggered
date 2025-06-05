@@ -158,17 +158,17 @@ protected:
             
             if (write_trigger_stats)
             {
-                trigger_stats += std::visit(getTriggerStats, trigger.second);
+                trigger_stats += std::visit(get_trigger_stats, trigger.second);
             
-                std::string trigger_name = std::visit(getName, trigger.second);
-                auto trigger_pulses = std::visit(getTriggerPulses, trigger.second);
+                std::string trigger_name = std::visit(get_trigger_name, trigger.second);
+                auto trigger_pulses = std::visit(get_trigger_pulses, trigger.second);
                 if (!trigger_pulses.empty())
                 {
-                    all_trigger_pulses[trigger_name] = std::visit(getTriggerPulses, trigger.second);
+                    all_trigger_pulses[trigger_name] = std::visit(get_trigger_pulses, trigger.second);
                 }
                 triggers_as_json[trigger_name] = std::visit(jsonify, trigger.second);
             }
-            std::visit(resetTrigger, trigger.second);
+            std::visit(reset_trigger, trigger.second);
         }
 
         triggered_writer.set_crop_points(crop_points_.first, crop_points_.second);
@@ -200,10 +200,10 @@ protected:
                     try
                     {
                         auto& trigger = triggers_.at(trigger_type);
-                        std::visit([&triggers_info](auto& arg){configureTrigger(arg, triggers_info);}, trigger);                     
-                        triggers_debug_info += std::visit(getTriggerInfo, trigger);
-                        auto trigger_msg_type = std::visit(getMsgType, trigger);
-                        auto trigger_type = std::visit(getName, trigger);
+                        std::visit([&triggers_info](auto& arg){configure_trigger(arg, triggers_info);}, trigger);                     
+                        triggers_debug_info += std::visit(get_trigger_info, trigger);
+                        auto trigger_msg_type = std::visit(get_msg_type, trigger);
+                        auto trigger_type = std::visit(get_trigger_name, trigger);
                         if(trigger_msg_type != msg_type)
                         {
                             RCLCPP_ERROR(get_logger(), "Trigger type %s does not have the expected message-type %s but instead has the msg-type: %s", 
@@ -285,7 +285,7 @@ protected:
     {
         if (negative_edge)
         {
-            auto trigger_pulses = std::visit(getTriggerPulses, trigger);
+            auto trigger_pulses = std::visit(get_trigger_pulses, trigger);
             if (trigger_pulses.empty())
             {
                 return;
@@ -302,13 +302,13 @@ protected:
     template <typename MsgType>
     void crop_points_from_triggers(TriggerVariant& trigger, const typename MsgType::SharedPtr msg)
     {
-        bool negative_edge = std::visit([&msg](auto& arg){return onSurge<MsgType>(arg, msg);}, trigger);
+        bool negative_edge = std::visit([&msg](auto& arg){return on_surge<MsgType>(arg, msg);}, trigger);
         crop_points_from_triggers(trigger, negative_edge);
     }
 
     void crop_points_from_triggers(TriggerVariant& trigger)
     {
-        bool negative_edge = std::visit([](auto& arg){return abortSurge(arg);}, trigger);
+        bool negative_edge = std::visit([](auto& arg){return abort_surge(arg);}, trigger);
         crop_points_from_triggers(trigger, negative_edge);
     }
 
@@ -319,14 +319,14 @@ protected:
             if constexpr (!std::is_same_v<TriggerT, std::monostate>) 
             {
                 auto temp = TriggerT{/*persistance_duration=*/0, get_clock(), std::make_shared<rclcpp::Logger>(get_logger()), /*use_msg_stamp=*/true};
-                triggers_[temp.getName()] = std::move(temp);
+                triggers_[temp.get_name()] = std::move(temp);
             }         
         }()), ...);
 
         std::string triggers_debug_info = "Recorder Node initialized with following trigger types:-";
         for(auto& [key, value] : triggers_) 
         {
-            const auto msg_type = std::visit(getMsgType, value);
+            const auto msg_type = std::visit(get_msg_type, value);
             triggers_debug_info += "\n\tTrigger Type: " + key + ",\tMsg Type: " + msg_type;
         }
         RCLCPP_INFO(get_logger(), triggers_debug_info.c_str());

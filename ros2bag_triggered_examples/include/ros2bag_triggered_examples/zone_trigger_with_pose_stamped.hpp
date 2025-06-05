@@ -26,15 +26,15 @@ public:
     ZoneTriggerWithPoseStamped() = delete;
     ~ZoneTriggerWithPoseStamped() override = default;
 
-    bool isTriggered(const geometry_msgs::msg::PoseStamped::SharedPtr msg) const override;
+    bool is_triggered(const geometry_msgs::msg::PoseStamped::SharedPtr msg) const override;
 
-    std::string getName() const override
+    std::string get_name() const override
     {
         return "ZoneTriggerWithPoseStamped";
     }
 
 private:
-    void configureConditionalParams(const YAML::Node& node) override;
+    void configure_conditional_params(const YAML::Node& node) override;
     TriggerZone trigger_zone_; // Zone to activate the trigger in. An example of conditional parameters.
 };
 

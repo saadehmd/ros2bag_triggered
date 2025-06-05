@@ -36,7 +36,7 @@ class TriggerBase
         }
     }
 
-    void fromYaml(const YAML::Node& node)
+    void from_yaml(const YAML::Node& node)
     {
         // YAML initialization shouldn't fallback on default constructed values and it should actively throw exceptions 
         // on problems parsing the configuration from yaml. Inclduing missing key-value pairs or wrong access-types.
@@ -49,16 +49,16 @@ class TriggerBase
             //The base class is still responsible for calling the derived class's configuration of conditional parameters.
             //This is so that the derived class' implementation of yaml-configuration is minimal i.e.; The initialization 
             //of required parameters and exception-handling is all done in the base class.
-            configureConditionalParams(node); 
+            configure_conditional_params(node); 
         }
         catch (const YAML::BadConversion& e)
         {
-            RCLCPP_ERROR(*logger_, "Bad-conversion while configuring %s: %s", getName().c_str(), e.what());
+            RCLCPP_ERROR(*logger_, "Bad-conversion while configuring %s: %s", get_name().c_str(), e.what());
             throw;
         }
         catch(const YAML::InvalidNode& e)
         {
-            RCLCPP_ERROR(*logger_, "Invalid-node while configuring %s: %s", getName().c_str(), e.what());
+            RCLCPP_ERROR(*logger_, "Invalid-node while configuring %s: %s", get_name().c_str(), e.what());
             throw;
         }
     }
@@ -66,26 +66,26 @@ class TriggerBase
     TriggerBase() = delete;
     virtual ~TriggerBase() = default;
 
-    virtual bool isTriggered(const typename T::SharedPtr msg) const = 0;
-    virtual std::string getName() const = 0;
-    std::string getMsgType() const
+    virtual bool is_triggered(const typename T::SharedPtr msg) const = 0;
+    virtual std::string get_name() const = 0;
+    std::string get_msg_type() const
     {
         return rosidl_generator_traits::name<T>();
     }
 
-    virtual std::string getTriggerInfo() const
+    virtual std::string get_trigger_info() const
     {
-        return "\n\tTrigger Type: " + getName() + 
-               "\n\tMsg Type: " + getMsgType() + 
+        return "\n\tTrigger Type: " + get_name() + 
+               "\n\tMsg Type: " + get_msg_type() + 
                "\n\tPersistance Duration: " + std::to_string(persistance_duration_.seconds()) + " seconds" +
                "\n\tUsing Message Stamps: " + (use_msg_stamp_ ? "true" : "false") +
                "\n\tEnabled: " + (enabled_ ? "true" : "false") +
                "\n\t=======================================================================================\n";
     }
 
-    std::string getTriggerStats() const
+    std::string get_trigger_stats() const
     {
-        std::string stats = "Trigger Stats for " + getName() + ":\n";
+        std::string stats = "Trigger Stats for " + get_name() + ":\n";
         for (const auto& pulse : trigger_pulses_)
         {
             auto seconds = std::to_string(rclcpp::Duration(std::chrono::nanoseconds(pulse.end_time_ - pulse.start_time_)).seconds());
@@ -102,7 +102,7 @@ class TriggerBase
     std::string jsonify() const
     {
         std::string json = "{\n";
-        json += "\t\"msg_type\": \"" + getMsgType() + "\",\n";
+        json += "\t\"msg_type\": \"" + get_msg_type() + "\",\n";
         json += "\t\"persistance_duration\": " + std::to_string(persistance_duration_.seconds()) + ",\n";
         json += "\t\"use_msg_stamp\": " + std::to_string(use_msg_stamp_) + ",\n";
         json += "\t\"trigger_pulses\": [\n";
@@ -116,7 +116,7 @@ class TriggerBase
     }
 
 
-    std::vector<TriggerPulse> getTriggerPulses() const
+    std::vector<TriggerPulse> get_trigger_pulses() const
     {
         return trigger_pulses_;
     }
@@ -128,49 +128,49 @@ class TriggerBase
         trigger_pulses_.clear();
     }
 
-    void setClock(const rclcpp::Clock::SharedPtr& clock)
+    void set_clock(const rclcpp::Clock::SharedPtr& clock)
     {
         clock_ = clock ; 
     }
 
-    void setLogger(const std::shared_ptr<rclcpp::Logger>& logger)
+    void set_logger(const std::shared_ptr<rclcpp::Logger>& logger)
     {
         logger_ = logger;
     }
 
-    bool isUsingMsgStamps() const
+    bool is_using_msg_stamps() const
     {
         return use_msg_stamp_;
     }
 
-    bool isEnabled() const
+    bool is_enabled() const
     {
         return enabled_;
     }
 
-    void setEnabled(bool enabled)
+    void set_enabled(bool enabled)
     {
         enabled_ = enabled;
     }
 
-    bool onSurge(const typename T::SharedPtr msg)
+    bool on_surge(const typename T::SharedPtr msg)
     {   
-        if(!isEnabled()) return false;
+        if(!is_enabled()) return false;
 
         if(use_msg_stamp_ && !type_traits::HasHeader<T>::value)
         {
-            RCLCPP_WARN_THROTTLE(*logger_, *clock_, 10000, "Trigger: %s is configured to use timestamps from the header but the underlying message-type(%s) is headerless. Using the clock time on this trigger!!", getName().c_str(), getMsgType().c_str());
+            RCLCPP_WARN_THROTTLE(*logger_, *clock_, 10000, "Trigger: %s is configured to use timestamps from the header but the underlying message-type(%s) is headerless. Using the clock time on this trigger!!", get_name().c_str(), get_msg_type().c_str());
         }
 
-        auto stamp = GetTimeStamp<T>(msg);
+        auto stamp = get_time_stamp<T>(msg);
         auto trigger_duration = last_stamp_ - first_stamp_;
         bool negative_edge = false;
         
-        if (msg && isTriggered(msg))
+        if (msg && is_triggered(msg))
         {
             if (first_stamp_ == 0)
             {
-                RCLCPP_DEBUG(*logger_, "%s positive edge", getName().c_str());
+                RCLCPP_DEBUG(*logger_, "%s positive edge", get_name().c_str());
                 first_stamp_ = stamp.nanoseconds();
             }
 
@@ -178,8 +178,8 @@ class TriggerBase
         }
         else if (trigger_duration >= persistance_duration_.nanoseconds())
         {
-            RCLCPP_DEBUG(*logger_, "%s negative edge", getName().c_str());
-            RCLCPP_INFO(*logger_, "%s Last Persistent trigger duration: %f seconds", getName().c_str(), rclcpp::Duration(std::chrono::nanoseconds(trigger_duration)).seconds());
+            RCLCPP_DEBUG(*logger_, "%s negative edge", get_name().c_str());
+            RCLCPP_INFO(*logger_, "%s Last Persistent trigger duration: %f seconds", get_name().c_str(), rclcpp::Duration(std::chrono::nanoseconds(trigger_duration)).seconds());
             trigger_pulses_.push_back({first_stamp_, last_stamp_});
             negative_edge = true;
             first_stamp_ = 0;
@@ -197,13 +197,13 @@ class TriggerBase
     // The interface dictates that derived classes should implement this method to load the additional trigger config from the yaml config file.
     // This config (i.e. conditional parameters) may or may not be required depending on the triggering condition designed by the derived class. 
     // Nevertheless, it is enforced so that the initialization of the "Conditional parameters" is always delegated to the derived class.
-    virtual void configureConditionalParams(const YAML::Node& node) = 0;
+    virtual void configure_conditional_params(const YAML::Node& node) = 0;
 
  private:
     // Utility function: Return message timestamp if message has header
     template <typename MsgT = T>
     typename std::enable_if<type_traits::HasHeader<MsgT>::value, rclcpp::Time>::type
-    GetTimeStamp(const typename T::SharedPtr msg) 
+    get_time_stamp(const typename T::SharedPtr msg) 
     {
         if (msg && use_msg_stamp_)
         {
@@ -215,7 +215,7 @@ class TriggerBase
     // Utility function: Return current time if message has no header
     template <typename MsgT = T>
     typename std::enable_if<!type_traits::HasHeader<MsgT>::value, rclcpp::Time>::type
-    GetTimeStamp(const typename T::SharedPtr) 
+    get_time_stamp(const typename T::SharedPtr) 
     {
         return clock_->now();
     }

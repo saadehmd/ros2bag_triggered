@@ -2,7 +2,7 @@
 
 using namespace ros2bag_triggered::examples;
 
-bool ZoneTriggerWithNavSatFix::isTriggered(const sensor_msgs::msg::NavSatFix::SharedPtr msg) const
+bool ZoneTriggerWithNavSatFix::is_triggered(const sensor_msgs::msg::NavSatFix::SharedPtr msg) const
 {
     return msg->latitude >= trigger_zone_.latitude_min && msg->latitude <= trigger_zone_.latitude_max &&
            msg->longitude >= trigger_zone_.longitude_min && msg->longitude <= trigger_zone_.longitude_max &&
@@ -10,7 +10,7 @@ bool ZoneTriggerWithNavSatFix::isTriggered(const sensor_msgs::msg::NavSatFix::Sh
 }
 
 
-void ZoneTriggerWithNavSatFix::configureConditionalParams(const YAML::Node& node) 
+void ZoneTriggerWithNavSatFix::configure_conditional_params(const YAML::Node& node) 
 {   
     trigger_zone_.latitude_min = node["trigger_zone"]["latitude_min"].as<double>();
     trigger_zone_.latitude_max = node["trigger_zone"]["latitude_max"].as<double>();

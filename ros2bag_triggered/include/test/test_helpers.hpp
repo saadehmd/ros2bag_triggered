@@ -22,17 +22,17 @@ public:
     EmptyTrigger(EmptyTrigger&&) = default;
     EmptyTrigger& operator=(EmptyTrigger&&) = default;
     
-    bool isTriggered(const std_msgs::msg::Bool::SharedPtr msg) const override
+    bool is_triggered(const std_msgs::msg::Bool::SharedPtr msg) const override
     {
         return msg->data; 
     }
 
-    std::string getName() const override
+    std::string get_name() const override
     {
         return "EmptyTrigger";
     }
 
-    void configureConditionalParams(const YAML::Node&) override
+    void configure_conditional_params(const YAML::Node&) override
     {
         // No conditional params required for this trigger.
     }
@@ -49,18 +49,18 @@ public:
     ~BatteryHealthTrigger() override = default;
 
     
-    bool isTriggered(const sensor_msgs::msg::BatteryState::SharedPtr msg) const override
+    bool is_triggered(const sensor_msgs::msg::BatteryState::SharedPtr msg) const override
     {
         return msg->power_supply_health != sensor_msgs::msg::BatteryState::POWER_SUPPLY_HEALTH_GOOD;
     }
 
-    std::string getName() const override
+    std::string get_name() const override
     {
         return "BatteryHealthTrigger";
     }
     
 private:
-    void configureConditionalParams(const YAML::Node&) override{}
+    void configure_conditional_params(const YAML::Node&) override{}
 };
 
 }  // namespace ros2bag_triggered::tests

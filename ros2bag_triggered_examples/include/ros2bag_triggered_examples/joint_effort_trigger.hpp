@@ -17,15 +17,15 @@ class JointEffortTrigger : public TriggerBase<trajectory_msgs::msg::JointTraject
         ~JointEffortTrigger() override = default;
         JointEffortTrigger() = delete;
     
-        bool isTriggered(const trajectory_msgs::msg::JointTrajectory::SharedPtr msg) const override;
+        bool is_triggered(const trajectory_msgs::msg::JointTrajectory::SharedPtr msg) const override;
     
-        std::string getName() const override
+        std::string get_name() const override
         {
             return "JointEffortTrigger";
         }
     
     private:
-        void configureConditionalParams(const YAML::Node& node) override;
+        void configure_conditional_params(const YAML::Node& node) override;
         double joint_effort_threshold_;
 
 };

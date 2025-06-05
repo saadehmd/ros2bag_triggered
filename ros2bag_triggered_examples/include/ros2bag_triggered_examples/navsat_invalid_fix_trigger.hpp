@@ -16,15 +16,15 @@ class NavSatInvalidFixTrigger : public TriggerBase<sensor_msgs::msg::NavSatFix>
     NavSatInvalidFixTrigger() = delete;
     ~NavSatInvalidFixTrigger() override = default;
     
-    bool isTriggered(const sensor_msgs::msg::NavSatFix::SharedPtr msg) const override;
+    bool is_triggered(const sensor_msgs::msg::NavSatFix::SharedPtr msg) const override;
 
-    std::string getName() const override
+    std::string get_name() const override
     {
         return "NavSatInvalidFixTrigger";
     }
 
   private:
-    void configureConditionalParams(const YAML::Node& node) override;
+    void configure_conditional_params(const YAML::Node& node) override;
     
 };
 

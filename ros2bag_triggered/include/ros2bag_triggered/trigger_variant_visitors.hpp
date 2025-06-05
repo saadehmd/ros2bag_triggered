@@ -6,50 +6,50 @@
 
 namespace ros2bag_triggered {
 // Visitors
-auto resetTrigger = [](auto& trigger) { 
+auto reset_trigger = [](auto& trigger) { 
     if constexpr (!std::is_same_v<std::decay_t<decltype(trigger)>, std::monostate>) {
         trigger.reset();
     }
 };
 
-auto isTriggerEnabled = [](auto& trigger) -> bool { 
+auto is_trigger_enabled = [](auto& trigger) -> bool { 
     if constexpr (!std::is_same_v<std::decay_t<decltype(trigger)>, std::monostate>) {
-        return trigger.isEnabled();
+        return trigger.is_enabled();
     }
     return false; // Default behavior for monostate
 };
 
-auto getTriggerPulses = [](auto& trigger) -> std::vector<TriggerPulse> { 
+auto get_trigger_pulses = [](auto& trigger) -> std::vector<TriggerPulse> { 
     if constexpr (!std::is_same_v<std::decay_t<decltype(trigger)>, std::monostate>) {
-        return trigger.getTriggerPulses();
+        return trigger.get_trigger_pulses();
     }
     return {};  // Return empty vector for std::monostate
 };
 
-auto getMsgType = [](auto& trigger) -> std::string { 
+auto get_msg_type = [](auto& trigger) -> std::string { 
     if constexpr (!std::is_same_v<std::decay_t<decltype(trigger)>, std::monostate>) {
-        return trigger.getMsgType();
+        return trigger.get_msg_type();
     }
     return "unknown"; // Default type for monostate
 };
 
-auto getName = [](auto& trigger) -> std::string { 
+auto get_trigger_name = [](auto& trigger) -> std::string { 
     if constexpr (!std::is_same_v<std::decay_t<decltype(trigger)>, std::monostate>) {
-        return trigger.getName();
+        return trigger.get_name();
     }
     return "unknown"; // Default name for monostate
 };
 
-auto getTriggerInfo = [](auto& trigger) -> std::string { 
+auto get_trigger_info = [](auto& trigger) -> std::string { 
     if constexpr (!std::is_same_v<std::decay_t<decltype(trigger)>, std::monostate>) {
-        return trigger.getTriggerInfo();
+        return trigger.get_trigger_info();
     }
     return "No trigger info available"; 
 };
 
-auto getTriggerStats = [](auto& trigger) -> std::string { 
+auto get_trigger_stats = [](auto& trigger) -> std::string { 
     if constexpr (!std::is_same_v<std::decay_t<decltype(trigger)>, std::monostate>) {
-        return trigger.getTriggerStats();
+        return trigger.get_trigger_stats();
     }
     return ""; // Return empty string for monostate
 };
@@ -62,40 +62,40 @@ auto jsonify = [](auto& trigger) -> std::string {
 };
 
 template <typename MsgType>
-auto onSurge = [](auto& trigger, const typename MsgType::SharedPtr msg) -> bool {
+auto on_surge = [](auto& trigger, const typename MsgType::SharedPtr msg) -> bool {
     if constexpr (!std::is_same_v<std::decay_t<decltype(trigger)>, std::monostate>) {
         // Check if the trigger's expected message type matches the provided message type
         using TriggerMsgType = typename std::decay_t<decltype(trigger)>::MsgType;
         if constexpr (std::is_same_v<TriggerMsgType, MsgType>) 
         {
-            return trigger.onSurge(msg);
+            return trigger.on_surge(msg);
         } 
         else 
         {
-            throw std::runtime_error("Mismatch between msg-type on trigger: " + trigger.getMsgType() + 
+            throw std::runtime_error("Mismatch between msg-type on trigger: " + trigger.get_msg_type() + 
                                      " and msg-type on subscribed topic: " + typeid(MsgType).name());
         }
     }
     return false; // Default behavior for monostate
 };
 
-auto abortSurge = [](auto& trigger) -> bool { 
+auto abort_surge = [](auto& trigger) -> bool { 
     if constexpr (!std::is_same_v<std::decay_t<decltype(trigger)>, std::monostate>) {
-        return trigger.onSurge(nullptr); // Pass nullptr to indicate an abort signal
+        return trigger.on_surge(nullptr); // Pass nullptr to indicate an abort signal
     }
     return false;
 };
 
 
-auto configureTrigger = [](auto& trigger, const YAML::Node& config) {   
+auto configure_trigger = [](auto& trigger, const YAML::Node& config) {   
     if constexpr (!std::is_same_v<std::decay_t<decltype(trigger)>, std::monostate>) {
         // @ToDo: Support registering triggers of the same type, to different topics.
-        if (trigger.isEnabled()) {   
-            throw std::runtime_error("Trigger type: " + trigger.getName() + 
+        if (trigger.is_enabled()) {   
+            throw std::runtime_error("Trigger type: " + trigger.get_name() + 
                                      " is already registered to a topic. Registering single trigger-type to multiple topics is not yet supported.");
         }
-        trigger.fromYaml(config);
-        trigger.setEnabled(true);
+        trigger.from_yaml(config);
+        trigger.set_enabled(true);
     }
 };
 
