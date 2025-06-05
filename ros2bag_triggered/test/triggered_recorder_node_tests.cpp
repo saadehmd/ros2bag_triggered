@@ -8,7 +8,7 @@ using TriggerVariant = std::variant<std::monostate, tests::EmptyTrigger, tests::
 
 class TriggeredRecorderNodeTestHelper : public TriggeredRecorderNode<TriggerVariant>
 {
-  public:
+public:
     TriggeredRecorderNodeTestHelper(std::string&& node_name = "triggered_recorder_node_test_helper", 
                                     const rclcpp::NodeOptions& node_options = rclcpp::NodeOptions(), 
                                     const std::string& config_dir = "")
@@ -18,71 +18,80 @@ class TriggeredRecorderNodeTestHelper : public TriggeredRecorderNode<TriggerVari
         bool_pub = create_publisher<std_msgs::msg::Bool>("empty_msg", 1);
     }
 
-    std::unordered_map<std::string, TriggerVariant> getTriggers() const
+    std::unordered_map<std::string, TriggerVariant> get_triggers() const
     {
         return triggers_;
     }
-    size_t getNumberOfSubscriptions() const
+    size_t get_number_of_subscriptions() const
     {
-       return triggered_subscriptions_.size() + untriggered_subscriptions_.size();
+        return triggered_subscriptions_.size() + untriggered_subscriptions_.size();
     }
 
-    YAML::Node getTopicsConfig() const
+    YAML::Node get_topics_config() const
     {
         return topics_config_;
     }
 
-    bool isWriterInitialized()
+    std::filesystem::path get_bag_path() 
+    {
+        return get_writer_impl().get_base_folder();
+    }
+
+    std::filesystem::path get_root_dir() 
+    {
+        return get_writer_impl().get_config().bag_root_dir;
+    }
+
+    bool is_writer_initialized()
     {
         auto& triggered_writer = get_writer_impl();
         auto storage_opts = triggered_writer.get_storage_options();
         return triggered_writer.is_open() && !triggered_writer.get_bag_name().empty() && !storage_opts.uri.empty();
     }
 
-    size_t getRecordedTopicCount()
+    size_t get_recorded_topic_count()
     {
         auto& triggered_writer = get_writer_impl();
         return triggered_writer.get_topic_count();
     }
 
-    bool isTriggerBufferTimmerInitialized() const
+    bool is_trigger_buffer_timer_initialized() const
     {
         return trigger_buffer_timer_ != nullptr;
     }
 
-    std::pair<int64_t, int64_t> getCropPoints() const
+    std::pair<int64_t, int64_t> get_crop_points() const
     {
         return crop_points_;
     }
 
-    void testInit(size_t expected_topics_recorded, size_t expected_subscriptions, std::vector<std::string> expected_trigger_types)
+    void test_init(size_t expected_topics_recorded, size_t expected_subscriptions, std::vector<std::string> expected_trigger_types)
     {
-        
-        EXPECT_EQ(getRecordedTopicCount(), expected_topics_recorded);
+        EXPECT_EQ(get_recorded_topic_count(), expected_topics_recorded);
         EXPECT_EQ(triggers_.size(), std::variant_size<TriggerVariant>::value - 1);
-        EXPECT_EQ(getNumberOfSubscriptions(), expected_subscriptions);
-        
+        EXPECT_EQ(get_number_of_subscriptions(), expected_subscriptions);
+
         for (const auto& trigger_type : expected_trigger_types)
         {
             EXPECT_TRUE(triggers_.find(trigger_type) != triggers_.end());
         }
-         
+
         for (const auto& trigger : triggers_)
         {
             if(std::find(expected_trigger_types.begin(), expected_trigger_types.end(), trigger.first) == expected_trigger_types.end())
             {
-                EXPECT_FALSE(std::visit(isTriggerEnabled, trigger.second));
+                EXPECT_FALSE(std::visit(is_trigger_enabled, trigger.second));
                 continue;
             }
-            EXPECT_TRUE(std::visit(isTriggerEnabled, trigger.second));
+            EXPECT_TRUE(std::visit(is_trigger_enabled, trigger.second));
         }
-        EXPECT_TRUE(isWriterInitialized());
+        EXPECT_TRUE(is_writer_initialized());
         EXPECT_TRUE(trigger_buffer_timer_ != nullptr);
     }
 
-    void callReset() {reset();}
+    void call_reset() { reset(); }
 
-    void publishBatteryMsg(bool is_activated)
+    void publish_battery_msg(bool is_activated)
     {
         using sensor_msgs::msg::BatteryState;
         auto battery_status = is_activated ? BatteryState::POWER_SUPPLY_HEALTH_DEAD : BatteryState::POWER_SUPPLY_HEALTH_GOOD;
@@ -91,31 +100,46 @@ class TriggeredRecorderNodeTestHelper : public TriggeredRecorderNode<TriggerVari
         rclcpp::spin_some(this->get_node_base_interface());
     }
 
-    void publishBoolMsg(bool is_activated)
+    void publish_bool_msg(bool is_activated)
     {
         auto msg = std_msgs::msg::Bool().set__data(is_activated);
         bool_pub->publish(msg);
         rclcpp::spin_some(this->get_node_base_interface());
     }
 
-  private:
+private:
     rclcpp::Publisher<sensor_msgs::msg::BatteryState>::SharedPtr battery_pub; 
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr bool_pub;
 };
 
 class TriggeredRecorderNodeTestFixture : public ::testing::Test
 {
-  protected:
+protected:
     TriggeredRecorderNodeTestFixture()
     {}
 
     ~TriggeredRecorderNodeTestFixture()
     {
         rclcpp::shutdown();
+        if(test_helper_)
+        {
+            const auto untriggered_bag_path = test_helper_->get_bag_path();
+            const auto triggered_bag_path = test_helper_->get_root_dir() / "triggered_bags";
+            test_helper_.reset();
+            // Remove the triggered and untriggered bag directories after the test.
+            if(std::filesystem::exists(triggered_bag_path))
+            {
+                std::filesystem::remove_all(triggered_bag_path);
+            }
+            if(std::filesystem::exists(untriggered_bag_path))
+            {
+                std::filesystem::remove_all(untriggered_bag_path);
+            }
+        }
     }
 
     virtual void SetUp() override {}
-    
+
     void SetUp(const std::string& config_dir)
     {
         rclcpp::init(0, nullptr);
@@ -124,7 +148,7 @@ class TriggeredRecorderNodeTestFixture : public ::testing::Test
 
     virtual void TearDown() override
     {}
-    
+
     std::shared_ptr<TriggeredRecorderNodeTestHelper> test_helper_;
 };
 
@@ -136,8 +160,8 @@ TEST_F(TriggeredRecorderNodeTestFixture, test_valid_initialization)
     const size_t expected_topics_recorded = 2;
     std::vector<std::string> expected_trigger_types = {"EmptyTrigger", "BatteryHealthTrigger"};
     const size_t expected_subscriptions = 3; //Topics that are neither triggered nor recorded are not added to subscriptions.
-    
-    test_helper_->testInit(expected_topics_recorded, expected_subscriptions, expected_trigger_types);
+
+    test_helper_->test_init(expected_topics_recorded, expected_subscriptions, expected_trigger_types);
 }
 
 TEST_F(TriggeredRecorderNodeTestFixture, test_invalid_config_dir)
@@ -171,8 +195,8 @@ TEST_F(TriggeredRecorderNodeTestFixture, test_config_with_missing_triggers)
     const size_t expected_topics_recorded = 1;
     std::vector<std::string> expected_trigger_types = {"EmptyTrigger"};
     const size_t expected_subscriptions = 2; //Topics that are neither triggered nor recorded are not added to subscriptions.
-    
-    test_helper_->testInit(expected_topics_recorded, expected_subscriptions, expected_trigger_types);    
+
+    test_helper_->test_init(expected_topics_recorded, expected_subscriptions, expected_trigger_types);    
 }
 
 TEST_F(TriggeredRecorderNodeTestFixture, test_incomplete_trigger_configs)
@@ -190,25 +214,24 @@ TEST_F(TriggeredRecorderNodeTestFixture, test_topic_callback)
     auto start1 = test_helper_->get_clock()->now();
     while(test_helper_->get_clock()->now() - start1 < trigger_duration)
     {
-        test_helper_->publishBatteryMsg(/*is_activated=*/true);
+        test_helper_->publish_battery_msg(/*is_activated=*/true);
     }
-    test_helper_->publishBatteryMsg(/*is_activated=*/false);
+    test_helper_->publish_battery_msg(/*is_activated=*/false);
 
     auto start2 = test_helper_->get_clock()->now();
     while(test_helper_->get_clock()->now() - start2 < trigger_duration)
     {
-        test_helper_->publishBoolMsg(/*is_activated=*/true);
+        test_helper_->publish_bool_msg(/*is_activated=*/true);
     }
-    test_helper_->publishBoolMsg(/*is_activated=*/false);
-    
+    test_helper_->publish_bool_msg(/*is_activated=*/false);
 
-    auto triggers = test_helper_->getTriggers();
-    auto crop_points = test_helper_->getCropPoints();
-    EXPECT_TRUE(std::visit(getTriggerPulses, triggers.at("BatteryHealthTrigger")).size() == 1);
-    EXPECT_TRUE(std::visit(getTriggerPulses, triggers.at("EmptyTrigger")).size() == 1);
+    auto triggers = test_helper_->get_triggers();
+    auto crop_points = test_helper_->get_crop_points();
+    EXPECT_TRUE(std::visit(get_trigger_pulses, triggers.at("BatteryHealthTrigger")).size() == 1);
+    EXPECT_TRUE(std::visit(get_trigger_pulses, triggers.at("EmptyTrigger")).size() == 1);
     EXPECT_TRUE(crop_points.first > 0 && crop_points.second > 0);
-    EXPECT_EQ(crop_points.first , std::visit(getTriggerPulses, triggers.at("BatteryHealthTrigger")).at(0).start_time_);
-    EXPECT_EQ(crop_points.second , std::visit(getTriggerPulses, triggers.at("EmptyTrigger")).at(0).end_time_);
+    EXPECT_EQ(crop_points.first , std::visit(get_trigger_pulses, triggers.at("BatteryHealthTrigger")).at(0).start_time_);
+    EXPECT_EQ(crop_points.second , std::visit(get_trigger_pulses, triggers.at("EmptyTrigger")).at(0).end_time_);
 }
 
 TEST_F(TriggeredRecorderNodeTestFixture, test_reset)
@@ -220,17 +243,16 @@ TEST_F(TriggeredRecorderNodeTestFixture, test_reset)
     auto start1 = test_helper_->get_clock()->now();
     while(test_helper_->get_clock()->now() - start1 < trigger_duration)
     {
-        test_helper_->publishBatteryMsg(/*is_activated=*/true);
-        test_helper_->publishBoolMsg(/*is_activated=*/true);
+        test_helper_->publish_battery_msg(/*is_activated=*/true);
+        test_helper_->publish_bool_msg(/*is_activated=*/true);
     }
-    test_helper_->publishBatteryMsg(/*is_activated=*/false);
-    test_helper_->publishBoolMsg(/*is_activated=*/false);
-    test_helper_->callReset();
-    auto triggers = test_helper_->getTriggers();
-    auto crop_points = test_helper_->getCropPoints();
-    EXPECT_TRUE(std::visit(getTriggerPulses, triggers.at("BatteryHealthTrigger")).size() == 0);
-    EXPECT_TRUE(std::visit(getTriggerPulses, triggers.at("EmptyTrigger")).size() == 0);
+    test_helper_->publish_battery_msg(/*is_activated=*/false);
+    test_helper_->publish_bool_msg(/*is_activated=*/false);
+    test_helper_->call_reset();
+    auto triggers = test_helper_->get_triggers();
+    auto crop_points = test_helper_->get_crop_points();
+    EXPECT_TRUE(std::visit(get_trigger_pulses, triggers.at("BatteryHealthTrigger")).size() == 0);
+    EXPECT_TRUE(std::visit(get_trigger_pulses, triggers.at("EmptyTrigger")).size() == 0);
     EXPECT_TRUE(crop_points.first == -1 && crop_points.second == -1);
-    EXPECT_FALSE(test_helper_->isWriterInitialized());
-    
+    EXPECT_FALSE(test_helper_->is_writer_initialized());
 }

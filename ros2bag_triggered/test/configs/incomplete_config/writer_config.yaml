@@ -1,3 +1,3 @@
 max_bagfile_size: 1000000000                # The maximum size a bagfile can be, in bytes, before it is split.
 max_cache_size: 0                           # Bytes. A value of 0 disables caching and every write happens directly to disk.
-write_trigger_stats: true                   # If true, the trigger stats will be written to a file in the bag directory.
+write_trigger_stats: false                   # If true, the trigger stats will be written to a file in the bag directory.

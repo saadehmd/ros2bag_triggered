@@ -11,44 +11,49 @@ using namespace std::chrono_literals;
 class TriggeredWriterTestHelper : public TriggeredWriter
 {
 
-  public:
+public:
     TriggeredWriterTestHelper(const rclcpp::Logger& logger) : TriggeredWriter(logger)
     {}
 
     ~TriggeredWriterTestHelper()
     {}
 
-    rosbag2_storage::BagMetadata getMetaData()
+    rosbag2_storage::BagMetadata get_metadata()
     {
         return metadata_;
     }
 
-    ros2bag_triggered::TriggeredWriter::Config getConfig() const
+    ros2bag_triggered::TriggeredWriter::Config get_config() const
     {
         return config_;
     }
 
-    std::optional<rosbag2_storage::StorageOptions> getRewriteOptions() const
+    std::optional<rosbag2_storage::StorageOptions> get_rewrite_options() const
     {
         return rewrite_options_;
     }
 
-    void setMetaData(const rosbag2_storage::BagMetadata& metadata)
+    bool is_initialized() const
+    {
+        return !bag_name_.empty() ;
+    }
+
+    void set_metadata(const rosbag2_storage::BagMetadata& metadata)
     {
         metadata_ = metadata;
     }
 
-    void setConfig(const ros2bag_triggered::TriggeredWriter::Config& config)
+    void set_config(const ros2bag_triggered::TriggeredWriter::Config& config)
     {
         config_ = config;
     }
 
-    void setRewriteOptions(const rosbag2_storage::StorageOptions& rewrite_options)
+    void set_rewrite_options(const rosbag2_storage::StorageOptions& rewrite_options)
     {
         rewrite_options_ = std::make_optional(rewrite_options);
     }
 
-    void setTriggered(bool is_triggered)
+    void set_triggered(bool is_triggered)
     {
         is_triggered_ = is_triggered;
     }
@@ -56,13 +61,35 @@ class TriggeredWriterTestHelper : public TriggeredWriter
 
 class TriggeredWriterTestFixture : public ::testing::Test
 {
-  protected:
+protected:
     TriggeredWriterTestFixture() : 
         writer_{std::make_unique<ros2bag_triggered::TriggeredWriter>(rclcpp::get_logger("TriggeredWriterTests"))}
     {}
 
     ~TriggeredWriterTestFixture()
-    {}
+    {
+        auto& test_helper = get_test_helper();
+        if(test_helper.is_initialized())
+        {
+            const auto untriggered_bag_path = get_test_helper().get_base_folder();
+            const auto triggered_bag_path = get_test_helper().get_config().bag_root_dir + "/triggered_bags";
+            if(test_helper.is_open())
+            {
+                test_helper.close();
+            }
+            
+            // Remove the triggered and untriggered bag directories after the test.
+            if(std::filesystem::exists(triggered_bag_path))
+            {
+                std::filesystem::remove_all(triggered_bag_path);
+            }
+            if(std::filesystem::exists(untriggered_bag_path))
+            {
+                std::filesystem::remove_all(untriggered_bag_path);
+            }
+        }
+        
+    }
 
     virtual void SetUp() override { }
 
@@ -115,15 +142,15 @@ class TriggeredWriterTestFixture : public ::testing::Test
 
         // Simulate the conditions that might cause bag cropping and moving.
         // If the cropping is disabled, the rewrite options should have no effect on bag duration even if we set them. 
-        test_helper.setTriggered(true);
+        test_helper.set_triggered(true);
         auto rewrite_options = storage_options;
         rewrite_options.start_time_ns = storage_options.start_time_ns + expected_duration_ns/4;
-        test_helper.setRewriteOptions(rewrite_options);
+        test_helper.set_rewrite_options(rewrite_options);
 
         // Set the bag cropping option
         auto config = test_helper.get_config();
         config.bag_cropping = do_crop;
-        test_helper.setConfig(config);
+        test_helper.set_config(config);
 
         const auto last_bag_name = test_helper.get_bag_name();
         writer_.close();
@@ -168,7 +195,7 @@ TEST_F(TriggeredWriterTestFixture, test_valid_initialization)
     EXPECT_EQ(test_helper.get_config().trigger_buffer_duration, 600.0);
     EXPECT_EQ(test_helper.get_config().crop_gap, 1.0);
     EXPECT_TRUE(test_helper.get_config().bag_cropping);
-    EXPECT_TRUE(test_helper.get_config().write_trigger_stats);
+    EXPECT_FALSE(test_helper.get_config().write_trigger_stats);
     EXPECT_EQ(test_helper.get_storage_options().max_bagfile_size, 1000000000);
     EXPECT_EQ(test_helper.get_storage_options().max_bagfile_duration, 300);
     EXPECT_EQ(test_helper.get_storage_options().max_cache_size, 0);
@@ -211,7 +238,7 @@ TEST_F(TriggeredWriterTestFixture, test_close_no_triggers)
     const auto bag_base_folder = test_helper.get_base_folder();
     test_helper.close();
     EXPECT_FALSE(std::filesystem::exists(bag_base_folder));
-    EXPECT_FALSE(std::filesystem::exists(test_helper.getConfig().bag_root_dir + "/triggered_bags/" + bag_name));
+    EXPECT_FALSE(std::filesystem::exists(test_helper.get_config().bag_root_dir + "/triggered_bags/" + bag_name));
 }
 
 
@@ -235,7 +262,7 @@ TEST_F(TriggeredWriterTestFixture, test_cropping)
 
     const int64_t trigger_start_time = 2e9;
     const int64_t trigger_end_time = 7e9;
-    const double crop_gap = test_helper.getConfig().crop_gap * 1e9;
+    const double crop_gap = test_helper.get_config().crop_gap * 1e9;
 
     // Write some messages to the bag to create artifical bag duration.
     for(size_t i = 0; i <= 10; i++)
@@ -245,27 +272,27 @@ TEST_F(TriggeredWriterTestFixture, test_cropping)
     }
     
     test_helper.set_crop_points(-1, trigger_end_time);
-    auto rewrite_options = test_helper.getRewriteOptions();
+    auto rewrite_options = test_helper.get_rewrite_options();
     ASSERT_FALSE(rewrite_options.has_value());
 
     test_helper.set_crop_points(trigger_start_time, -1);
-    rewrite_options = test_helper.getRewriteOptions();
+    rewrite_options = test_helper.get_rewrite_options();
     ASSERT_FALSE(rewrite_options.has_value());
 
     test_helper.set_crop_points(-1, -1);
-    rewrite_options = test_helper.getRewriteOptions();
+    rewrite_options = test_helper.get_rewrite_options();
     ASSERT_FALSE(rewrite_options.has_value());
 
     config.bag_cropping = false;
-    test_helper.setConfig(config);
+    test_helper.set_config(config);
     test_helper.set_crop_points(trigger_start_time, trigger_end_time);
-    rewrite_options = test_helper.getRewriteOptions();
+    rewrite_options = test_helper.get_rewrite_options();
     ASSERT_FALSE(rewrite_options.has_value());
 
     config.bag_cropping = true;
-    test_helper.setConfig(config);
+    test_helper.set_config(config);
     test_helper.set_crop_points(trigger_start_time, trigger_end_time);
-    rewrite_options = test_helper.getRewriteOptions();
+    rewrite_options = test_helper.get_rewrite_options();
     ASSERT_TRUE(rewrite_options.has_value());
     EXPECT_EQ(rewrite_options.value().start_time_ns, static_cast<double>(trigger_start_time) - crop_gap);
     EXPECT_EQ(rewrite_options.value().end_time_ns, static_cast<double>(trigger_end_time) + crop_gap);

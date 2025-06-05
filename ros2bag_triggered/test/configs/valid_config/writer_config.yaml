@@ -11,4 +11,4 @@ trigger_buffer_interval: 600.0              # The interval in seconds for which 
 bag_cropping: True                          # Enable/disable bag cropping. If enabled, the bag is re-writen from first to last trigger stamp.
                                             # If disabled the whole bag is kept(and not re-writen) if triggered.
 crop_gap: 1.0                              # The gap(padding) in seconds to add before and after the crop-points of the bag.
-write_trigger_stats: true                   # If true, the trigger stats will be written to a file in the bag directory.
+write_trigger_stats: false                   # If true, the trigger stats will be written to a file in the bag directory.
