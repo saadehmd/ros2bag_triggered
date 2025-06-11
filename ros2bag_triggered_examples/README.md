@@ -48,24 +48,24 @@ To create a custom `TriggerType`, follow these steps:
         //   TriggeredRecorderNode reads this from the YAML configuration.
     ```
 
-3. Override the function ``` bool isTriggered(const YourDesiredROS2MsgType::SharedPtr)``` and implement the actual triggering-logic:- 
+3. Override the function ``` bool is_triggered(const YourDesiredROS2MsgType::SharedPtr)``` and implement the actual triggering-logic:- 
 
     ```cpp
 
     // battery_health_trigger.hpp
-    bool isTriggered(const sensor_msgs::msg::BatteryState::SharedPtr msg) const override;
+    bool is_triggered(const sensor_msgs::msg::BatteryState::SharedPtr msg) const override;
 
     // battery_health_trigger.cpp
-    bool BatteryHealthTrigger::isTriggered(const sensor_msgs::msg::BatteryState::SharedPtr msg) const
+    bool BatteryHealthTrigger::is_triggered(const sensor_msgs::msg::BatteryState::SharedPtr msg) const
     {
         return msg->power_supply_health != sensor_msgs::msg::BatteryState::POWER_SUPPLY_HEALTH_GOOD;
     }
     ```
-4. Override the function ```std::string getName()``` to return the name of your ```TriggerType``` as a string. It's recommended that this name matches your ```TriggerType```'s class name closely but that's not necessarily required. Note!! This is the name you'll be using to configure your trigger in the [topic_config.yaml](../config/topic_config.yaml), so be sure to name it something meaningful.
+4. Override the function ```std::string get_name()``` to return the name of your ```TriggerType``` as a string. It's recommended that this name matches your ```TriggerType```'s class name closely but that's not necessarily required. Note!! This is the name you'll be using to configure your trigger in the [topic_config.yaml](../config/topic_config.yaml), so be sure to name it something meaningful.
 
     ```cpp
 
-    std::string getName() const override
+    std::string get_name() const override
     {
         return "BatteryHealthTrigger";
     }
@@ -73,17 +73,17 @@ To create a custom `TriggerType`, follow these steps:
 5. Declare any number and type of conditional params for your triggering logic as member variables in the ```private``` or ```public``` section of your ```TriggerType``` definition. These params support the triggering logic itself and can also be configured in [topic_config.yaml](../config/topic_config.yaml). The ```BatteryHealthTrigger``` we've been looking at so far doesn't have an example of these. A good use-case of these can be seen in ```ZoneTriggerWithNavSatFix```  [header](../include/examples/zone_trigger_with_navsat_fix.hpp) and [implementation](./zone_trigger_with_navsat_fix.cpp)  
 
 
-6. Override the function ```void configureConditionalParams(const YAML::Node& node)```. This function is used to read extra parameters from yaml config which weren't configured in the basic constructor. These so-called "conditional" parameters could be any kind of parameters and may or may not exist depending on your trigger-logic.
+6. Override the function ```void configure_conditional_params(const YAML::Node& node)```. This function is used to read extra parameters from yaml config which weren't configured in the basic constructor. These so-called "conditional" parameters could be any kind of parameters and may or may not exist depending on your trigger-logic.
 
     ```cpp
-    void configureConditionalParams(const YAML::Node& node) override;
+    void configure_conditional_params(const YAML::Node& node) override;
 
     // You don't have to do any YAML exception-handling, as the base-interface takes the responsibility of calling and handling the exceptions in 
     // this funcion.
     // NOTE!! Each YAML node here is relative to the respective trigger in the topic_config.yaml and not relative to the root node of the whole file.
     // We'll discuss the structure of topic_config.yaml in the next step.
     
-    void ZoneTriggerWithNavSatFix::configureConditionalParams(const YAML::Node& node) 
+    void ZoneTriggerWithNavSatFix::configure_conditional_params(const YAML::Node& node) 
     {   
         trigger_zone_.latitude_min = node["trigger_zone"]["latitude_min"].as<double>();
         trigger_zone_.latitude_max = node["trigger_zone"]["latitude_max"].as<double>();
@@ -103,7 +103,7 @@ The triggers are configured in the file ```topic_config.yaml```. This file is a 
 2. Under each topic an optional field ```record``` specifies whether the topic should be recorded in the bag or not. If not specified, it defaults to true. 
 3. The field ```triggers``` can be left-out if a topic is only recorded and not used for any triggers. If both ```record``` field is set to ```False``` and no ```triggers``` field is present, the topic will be ignored entirely and not subscribed to.
 4. Under each  ```triggers``` field, you have to configure a list of triggers.
-5. Each configured trigger under ```triggers``` requires the field ```type``` which cannot be left-out. This field should match exactly the name returned by the ```getName()``` function for the ```TriggerType``` implemented in the **Writing Your Custom TriggerType** section. 
+5. Each configured trigger under ```triggers``` requires the field ```type``` which cannot be left-out. This field should match exactly the name returned by the ```get_name()``` function for the ```TriggerType``` implemented in the **Writing Your Custom TriggerType** section. 
 6. Each configured trigger under ```triggers``` has an optional field ```persistance_duration```, used to set it's persistance-duration in seconds. If left-out it defaults to zero i.e.; a trigger that doesn't need persistance and can activate on the very first triggering msg.
 7. Each configured trigger under ```triggers``` has an optional field ```use_msg_stamp```, used to indicate whether this trigger uses stamp from it's own header or from node clock. If left-out or if the msg type is header-less, this defaults to ```False```.
 8. The topic's ```msg_type``` and trigger's underlying ```<msg_type>``` should match at run-time, otherwise you'll get a runtime error. 
