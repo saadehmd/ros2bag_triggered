@@ -11,7 +11,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-if (rclcpp_VERSION VERSION_LESS "28.1.5")
+if(rclcpp_VERSION VERSION_LESS "28.1.5")
     message(FATAL_ERROR "ROS2 Distro should be at least Jazzy.")
 endif()
 find_package(rosbag2_cpp REQUIRED)
@@ -76,16 +76,17 @@ ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 ament_export_libraries(${PROJECT_NAME})
 ament_export_dependencies(rclcpp rosbag2_cpp rosbag2_transport rosbag2_storage rosbag2 rosgraph_msgs std_msgs matplotlib_cpp yaml-cpp)
 
-set(BUILD_TESTING ON)
 if(BUILD_TESTING)
-  #find_package(ament_lint_auto REQUIRED)
+  find_package(ament_lint_auto REQUIRED)
   find_package(ament_cmake_gtest REQUIRED)
   find_package(sensor_msgs REQUIRED)
+  set(ament_cmake_clang_format_CONFIG_FILE "${CMAKE_CURRENT_SOURCE_DIR}/.clang-format")
+  set(ament_cmake_copyright_FOUND TRUE)
+  set(ament_cmake_cpplint_FOUND TRUE)
+  # Exclude uncrustify and use clang-format instead
+  list(APPEND AMENT_LINT_AUTO_EXCLUDE ament_cmake_uncrustify)
 
-  #set(ament_cmake_copyright_FOUND TRUE)
-  #set(ament_cmake_cpplint_FOUND TRUE)
-  #ament_lint_auto_find_test_dependencies()
-
+  ament_lint_auto_find_test_dependencies()
 
   set(TEST_SOURCE
     test/trigger_base_tests.cpp

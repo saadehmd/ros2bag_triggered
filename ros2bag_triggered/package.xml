@@ -20,8 +20,10 @@
   <test_depend>sensor_msgs</test_depend>
   <exec_depend>numpy</exec_depend>
   <exec_depend>matplotlib</exec_depend>
-  <!--<test_depend>ament_lint_auto</test_depend>
-  <test_depend>ament_lint_common</test_depend> -->
+ 
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_cmake_clang_format</test_depend>
+  <test_depend>ament_lint_common</test_depend> 
 
   <export>
     <build_type>ament_cmake</build_type>

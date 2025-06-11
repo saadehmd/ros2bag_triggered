@@ -2,22 +2,23 @@
 
 using namespace ros2bag_triggered::examples;
 
-bool JointEffortTrigger::is_triggered(const trajectory_msgs::msg::JointTrajectory::SharedPtr msg) const
+bool JointEffortTrigger::is_triggered(
+  const trajectory_msgs::msg::JointTrajectory::SharedPtr msg) const
 {
-    for (const auto& trajectory_point : msg->points)
+  for (const auto & trajectory_point : msg->points)
+  {
+    for (const auto & effort : trajectory_point.effort)
     {
-        for (const auto& effort : trajectory_point.effort)
-        {
-            if (std::abs(effort) > joint_effort_threshold_)
-            {
-                return true;
-            }
-        }
+      if (std::abs(effort) > joint_effort_threshold_)
+      {
+        return true;
+      }
     }
-    return false;
+  }
+  return false;
 }
 
-void JointEffortTrigger::configure_conditional_params(const YAML::Node& node)
+void JointEffortTrigger::configure_conditional_params(const YAML::Node & node)
 {
-    joint_effort_threshold_ = node["joint_effort_threshold"].as<double>();
+  joint_effort_threshold_ = node["joint_effort_threshold"].as<double>();
 }
