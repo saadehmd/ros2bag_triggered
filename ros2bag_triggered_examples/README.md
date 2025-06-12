@@ -61,7 +61,7 @@ To create a custom `TriggerType`, follow these steps:
         return msg->power_supply_health != sensor_msgs::msg::BatteryState::POWER_SUPPLY_HEALTH_GOOD;
     }
     ```
-4. Override the function ```std::string get_name()``` to return the name of your ```TriggerType``` as a string. It's recommended that this name matches your ```TriggerType```'s class name closely but that's not necessarily required. Note!! This is the name you'll be using to configure your trigger in the [topic_config.yaml](../config/topic_config.yaml), so be sure to name it something meaningful.
+4. Override the function ```std::string get_name()``` to return the name of your ```TriggerType``` as a string. It's recommended that this name matches your ```TriggerType```'s class name closely but that's not necessarily required. Note!! This is the name you'll be using to configure your trigger in the [topic_config.yaml](./config/topic_config.yaml), so be sure to name it something meaningful.
 
     ```cpp
 
@@ -70,7 +70,7 @@ To create a custom `TriggerType`, follow these steps:
         return "BatteryHealthTrigger";
     }
     ```
-5. Declare any number and type of conditional params for your triggering logic as member variables in the ```private``` or ```public``` section of your ```TriggerType``` definition. These params support the triggering logic itself and can also be configured in [topic_config.yaml](../config/topic_config.yaml). The ```BatteryHealthTrigger``` we've been looking at so far doesn't have an example of these. A good use-case of these can be seen in ```ZoneTriggerWithNavSatFix```  [header](../include/examples/zone_trigger_with_navsat_fix.hpp) and [implementation](./zone_trigger_with_navsat_fix.cpp)  
+5. Declare any number and type of conditional params for your triggering logic as member variables in the ```private``` or ```public``` section of your ```TriggerType``` definition. These params support the triggering logic itself and can also be configured in [topic_config.yaml](./config/topic_config.yaml). The ```BatteryHealthTrigger``` we've been looking at so far doesn't have an example of these. A good use-case of these can be seen in ```ZoneTriggerWithNavSatFix```  [header](./include/ros2bag_triggered_examples/zone_trigger_with_navsat_fix.hpp) and [implementation](./src/zone_trigger_with_navsat_fix.cpp)  
 
 
 6. Override the function ```void configure_conditional_params(const YAML::Node& node)```. This function is used to read extra parameters from yaml config which weren't configured in the basic constructor. These so-called "conditional" parameters could be any kind of parameters and may or may not exist depending on your trigger-logic.

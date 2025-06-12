@@ -1,4 +1,7 @@
 # ros2bag_triggered
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![ros2bag_triggered_build](https://github.com/saadehmd/ros2bag_triggered/actions/workflows/cmake-single-platform.yml/badge.svg)](https://github.com/saadehmd/ros2bag_triggered/actions/workflows/cmake-single-platform.yml) 
+
 A collection of helper classes for rosbag2 focused mainly at providing triggering functionality with ros2 bags.
 
 ## Brief Introduction:  
@@ -30,8 +33,8 @@ Working with ros2bag_triggered follows a simple paradigm:-
 1. You implement your "triggering-logic" to a custom `TriggerType` inheriting the interface from `TriggerBase` class.  
 2. You write some basic configuration for each trigger into a single `config.yaml`
 3. You hand over your custom TriggerTypes to the templated `TriggeredRecorderNode<std::variant<YourTriggerTypes>>` class. This class safely initializes your custom trigger types based on the `config.yaml` file and manages their lifecycle within the recorder.
-4. You use this `TriggeredRecorderNode<>` class instance anywhere inside your code, with either single-executor, multi-executor or composable-nodes setup.
-5. You can have some `TriggerType`s that are compiled within `TriggeredRecorderNode<>` as a template arg but still left-out from the `topic_config.yaml`. These would simply be disabled triggers in the node. But you cannot do the opposite i.e.; If a `TriggerType` config is in the `topic_config.yaml`, it should not be missing from the template args, otherwise you'll get runtime error.
+4. You use this `TriggeredRecorderNode<std::variant<TriggerTypes>` class instance anywhere inside your code, with either single-executor, multi-executor or composable-nodes setup.
+5. You can have some `TriggerType`s that are compiled within `TriggeredRecorderNode<std::variant<TriggerTypes>` as a template arg but still left-out from the `topic_config.yaml`. These would simply be disabled triggers in the node. But you cannot do the opposite i.e.; If a `TriggerType` config is in the `topic_config.yaml`, it should not be missing from the template args, otherwise you'll get runtime error.
 
 ### Implementing & Configuring Custom TriggerTypes:
 Refer to : [examples](ros2bag_triggered_examples/)
@@ -75,7 +78,7 @@ write_trigger_stats: true                   # If true, the trigger stats and plo
 ```
 
 ### Using TriggeredRecordNode with the custom TriggerTypes
-Refer to a simple triggered_recorder_node [example](./ros2bag_triggered_examples/src/main.cpp) using [custom](include/examples/) TriggerTypes:-
+Refer to a simple triggered_recorder_node [example](./ros2bag_triggered_examples/src/main.cpp) using [custom](./ros2bag_triggered_examples/include/ros2bag_triggered_examples/) TriggerTypes:-
 - [BatteryHealthTrigger](./ros2bag_triggered_examples/src/battery_health_trigger.cpp) 
 - [NavSatInvalidFixTrigger](./ros2bag_triggered_examples/src/navsat_invalid_fix_trigger.cpp) 
 - [ZoneTriggerWithNavSatFix](./ros2bag_triggered_examples/src/zone_trigger_with_navsat_fix.cpp) 
@@ -111,7 +114,7 @@ cmake --install .
 Some useful [resources](https://matplotlib-cpp.readthedocs.io/en/latest/examples.html) on matplotlibcpp useage, installation or compilation issues.
 
 ```bash
-# Navigate to your ros2_ws dir, clone this repo and build the packages in this project with
+# Navigate to your ros2_ws/src dir, clone this repo and build the packages in this project from ros2_ws/ with :-
 colcon build --symlink-install --packages-select ros2bag_triggered ros2bag_triggered_examples ros2bag_triggered_tester
 
 # Run the example node
