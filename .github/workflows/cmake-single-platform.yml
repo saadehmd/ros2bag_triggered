@@ -1,0 +1,58 @@
+# This starter workflow is for a CMake project running on a single platform. There is a different starter workflow if you need cross-platform coverage.
+# See: https://github.com/actions/starter-workflows/blob/main/ci/cmake-multi-platform.yml
+name: ros2bag_triggered_build
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+    types: [opened]
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
+    # You can convert this to a matrix build if you need cross-platform coverage.
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    runs-on: ubuntu-24.04
+
+    steps:
+    # Install some system pacakges
+    - name: Install ROS 2 Jazzy packages
+      run: |
+        sudo apt update
+        sudo apt install -y software-properties-common
+        sudo add-apt-repository universe
+        sudo apt update && sudo apt install -y curl
+        sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
+        sudo apt update
+        sudo apt install -y ros-jazzy-ros-base python3-colcon-common-extensions
+        sudo apt install -y lcov python3-matplotlib python3-numpy 
+        
+    - name: Setup Workspace
+      run: |
+        source /opt/ros/jazzy/setup.bash
+        mkdir -p ros2_ws/src/ros2bag_triggered
+
+    - name: Build & Install Matplolibcpp
+      run: |
+        mkdir -p external_ws && cd external_ws
+        git clone https://github.com/lava/matplotlib-cpp
+        cd matplotlib-cpp && mkdir build && cd build
+        cmake .. && cmake --build .
+        sudo cmake --install .
+
+    - uses: actions/checkout@v4
+      with:
+        path: ros2_ws/src/ros2bag_triggered
+
+    - name: Build ros2bag_triggered
+      run: |
+        cd ros2_ws/ && source /opt/ros/jazzy/setup.bash
+        colcon build --packages-select ros2bag_triggered
+
