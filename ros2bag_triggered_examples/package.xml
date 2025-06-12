@@ -5,7 +5,7 @@
   <version>0.0.0</version>
   <description>Examples for ros2bag_triggered package</description>
   <maintainer email="saadehmd@gmail.com">root</maintainer>
-  <license>MIT</license>
+  <license>Apache License 2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
