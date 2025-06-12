@@ -237,7 +237,7 @@ protected:
         // If the topic is not triggered, we create subscription as generic, that resolves message-type at runtime.
         std::function<void(std::shared_ptr<rclcpp::SerializedMessage> msg)> callback = std::bind(
           &TriggeredRecorderNode::untriggered_topic_callback, this, std::placeholders::_1,
-          topic_name, msg_type, triggers);
+          topic_name, msg_type);
 
         untriggered_subscriptions_.push_back(
           create_generic_subscription(topic_name, msg_type, rclcpp::QoS(10), callback));
@@ -276,13 +276,12 @@ protected:
 
   void untriggered_topic_callback(
     const std::shared_ptr<rclcpp::SerializedMessage> msg, const std::string & topic_name,
-    const std::string & topic_type,
-    const std::vector<std::reference_wrapper<TriggerVariant>> & triggers)
+    const std::string & topic_type)
   {
     RCLCPP_DEBUG(get_logger(), "Received message on untriggered topic: %s", topic_name.c_str());
     rclcpp::Time time_stamp = get_clock()->now();
 
-    writer_.write(*msg, topic_name, topic_type, time_stamp);
+    writer_.write(msg, topic_name, topic_type, time_stamp);
   }
 
   void crop_points_from_triggers(TriggerVariant & trigger, bool negative_edge)

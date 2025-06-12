@@ -36,10 +36,15 @@ public:
     }
   }
 
+  /**
+   * @brief Initialize/Re-initialize the trigger from a YAML node.
+   *
+   * @param node The YAML node containing the trigger configuration.
+   */
   void from_yaml(const YAML::Node & node)
   {
     // YAML initialization shouldn't fallback on default constructed values and it should actively throw exceptions
-    // on problems parsing the configuration from yaml. Inclduing missing key-value pairs or wrong access-types.
+    // on problems parsing the configuration from yaml. Including missing key-value pairs or wrong access-types.
     try
     {
       persistance_duration_ =
@@ -66,10 +71,28 @@ public:
   TriggerBase() = delete;
   virtual ~TriggerBase() = default;
 
+  /**
+   * @brief Check if the trigger is activated by the given message. 
+   * This should be implemented by derived classes.
+   *
+   * @param msg The message to check.
+   * @return true if the trigger is activated, false otherwise.
+   */
   virtual bool is_triggered(const typename T::SharedPtr msg) const = 0;
+
+  /**
+   * @brief Get the name of the trigger. This should be implemented by derived classes.
+   */
   virtual std::string get_name() const = 0;
+
+  /**
+   * @brief Get the underlying message type of the trigger as a string.
+   */
   std::string get_msg_type() const { return rosidl_generator_traits::name<T>(); }
 
+  /**
+   * @brief Get trigger's configuration as a human-readable string.
+   */
   virtual std::string get_trigger_info() const
   {
     return "\n\tTrigger Type: " + get_name() + "\n\tMsg Type: " + get_msg_type() +
@@ -79,7 +102,10 @@ public:
            "\n\t==================================================================================="
            "====\n";
   }
-
+  /**
+   * @brief Get the trigger's stats i.e.; trigger pulses and duration as human-readable string.
+   * @return A string containing the trigger's stats.
+   */
   std::string get_trigger_stats() const
   {
     std::string stats = "Trigger Stats for " + get_name() + ":\n";
@@ -98,6 +124,10 @@ public:
     return stats;
   }
 
+  /**
+    * @brief Get the trigger's stats i.e.; trigger pulses and duration as json string.
+    * This is used for debugging and logging purposes.
+    */
   std::string jsonify() const
   {
     std::string json = "{\n";
@@ -125,16 +155,20 @@ public:
     trigger_pulses_.clear();
   }
 
+  /** @brief Set the clock used by the triggers. */
   void set_clock(const rclcpp::Clock::SharedPtr & clock) { clock_ = clock; }
 
+  /** @brief Set the rclcp::logger used by the triggers. */
   void set_logger(const std::shared_ptr<rclcpp::Logger> & logger) { logger_ = logger; }
 
+  /** @brief Check if the trigger is configured to use message stamps. */
   bool is_using_msg_stamps() const { return use_msg_stamp_; }
 
   bool is_enabled() const { return enabled_; }
 
   void set_enabled(bool enabled) { enabled_ = enabled; }
 
+  /** @brief Handle a surge event for the trigger i.e.; A positive or a negative surge. */
   bool on_surge(const typename T::SharedPtr msg)
   {
     if (!is_enabled()) return false;
@@ -161,7 +195,7 @@ public:
       }
 
       last_stamp_ = stamp.nanoseconds();
-    } else if (trigger_duration >= persistance_duration_.nanoseconds())
+    } else if (trigger_duration >= static_cast<unsigned long>(persistance_duration_.nanoseconds()))
     {
       RCLCPP_DEBUG(*logger_, "%s negative edge", get_name().c_str());
       RCLCPP_INFO(

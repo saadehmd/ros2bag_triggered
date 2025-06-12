@@ -102,7 +102,7 @@ TEST(TiggerWithHeaderTests, test_trigger_stamps)
 
   const auto time_offset = rclcpp::Duration::from_seconds(10.0);
   const auto surge_start = clock->now();
-  std::shared_ptr<rclcpp::Time> clock_start;
+  const auto clock_start = std::make_shared<rclcpp::Time>(clock->now());
   while ((clock->now() - surge_start).seconds() < persistance_duration + buffer_duration)
   {
     auto pos_msg = std::make_shared<sensor_msgs::msg::BatteryState>();
@@ -110,11 +110,6 @@ TEST(TiggerWithHeaderTests, test_trigger_stamps)
     pos_msg->power_supply_health = sensor_msgs::msg::BatteryState::POWER_SUPPLY_HEALTH_DEAD;
 
     EXPECT_FALSE(triggers_with_stamps.on_surge(pos_msg));
-
-    if (!clock_start)
-    {
-      clock_start = std::make_shared<rclcpp::Time>(clock->now());
-    }
     EXPECT_FALSE(triggers_with_clock.on_surge(pos_msg));
   }
 

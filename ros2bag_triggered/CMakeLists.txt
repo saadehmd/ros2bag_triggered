@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.8)
 project(ros2bag_triggered)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic -lpthread -lutil -ldl)
+  add_compile_options(-Wall -Wextra -Wpedantic -lpthread -lutil -ldl -Wno-format-extra-args)
 endif()
 
 set(CMAKE_CXX_STANDARD 20)

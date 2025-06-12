@@ -32,14 +32,26 @@ public:
   }
   ~TriggeredWriter() = default;
 
+  /**
+    * @brief Initialize the writer from the configuration file.
+    * @param writer_config The path to the YAML configuration file for the writer.
+    */
   void initialize(const std::filesystem::path & writer_config);
-  void close();
+
+  /** @brief Wrapper around the SequentialWriter::Close function. Crops and moves the bag on closing if needed. */
+  void close() override;
+
+  /** @brief Wrapper around the SequentialWriter::Open function. Resets trigger/cropping configurations and storage-options.*/
   void open(
     const rosbag2_storage::StorageOptions & storage_options,
     const rosbag2_cpp::ConverterOptions & converter_options) override;
+
+  /** @brief Write the trigger statistics to the bag folder. */
   void write_trigger_stats(
     const std::string & trigger_stats,
     const std::unordered_map<std::string, std::string> & trigger_as_json);
+
+  /** @brief Save a plot of trigger-pulses to the bag folder. */
   void plot_triggers(const TriggerPulseMap & trigger_pulses);
 
   /**

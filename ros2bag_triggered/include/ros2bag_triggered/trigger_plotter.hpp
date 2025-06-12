@@ -81,7 +81,7 @@ inline std::string get_human_readable_datetime(const TimePoint<Ns> & time_point)
 
 inline std::pair<int, int> get_plot_idx_from_pulse(
   const TriggerPulse & trigger_pulse, const TimePoint<Ns> & bag_start_time,
-  const TimePoint<Ns> & bag_end_time, double time_axs_resolution, size_t time_axis_size)
+  double time_axs_resolution, size_t time_axis_size)
 {
   auto trigger_start_time = std::chrono::duration_cast<std::chrono::seconds>(
     TimePoint(Ns(trigger_pulse.start_time_)) - bag_start_time);
@@ -115,7 +115,7 @@ inline void plot_triggers(
   }
   // @todo: the std::ranges::iota_view::to<vector>() is not available in C++20 and not standardized for all
   // compilers yet in C++23. So this could be converted to the ranges method instead of for loop in future.
-  const double dt = 0.1;  // 1ms
+  const double dt = 0.1;  // 100ms
   std::vector<double> time_axis;
   for (double t = 0; t < bag_duration; t += dt)
   {
@@ -146,12 +146,12 @@ inline void plot_triggers(
 
       auto & trigger_pulse = trigger_pulse_plot.trigger_pulse_;
       auto [start_idx, end_idx] =
-        get_plot_idx_from_pulse(trigger_pulse, bag_start_time, bag_end_time, dt, time_axis.size());
+        get_plot_idx_from_pulse(trigger_pulse, bag_start_time, dt, time_axis.size());
 
       auto x_fill = std::vector<double>(time_axis.begin() + start_idx, time_axis.begin() + end_idx);
       std::vector<double> y_fill(x_fill.size(), 1.0);
 
-      for (size_t i = start_idx; i < end_idx; ++i)
+      for (int i = start_idx; i < end_idx; ++i)
       {
         trigger_axis.at(i) = 1.0;
       }
