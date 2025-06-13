@@ -93,12 +93,12 @@ if(BUILD_TESTING)
     test/triggered_recorder_node_tests.cpp
     test/triggered_writer_tests.cpp)
 
-  ament_add_gtest(trigger_base_tests ${TEST_SOURCE})
-  set_tests_properties(trigger_base_tests PROPERTIES TIMEOUT 100)
-  target_include_directories(trigger_base_tests PRIVATE include test)
-  target_include_directories(trigger_base_tests SYSTEM PRIVATE ${GTEST_INCLUDE_DIRS})
-  target_link_libraries(trigger_base_tests  ${PROJECT_NAME})
-  ament_target_dependencies(trigger_base_tests sensor_msgs std_msgs)
+  ament_add_gtest(ros2bag_triggered_tests ${TEST_SOURCE})
+  set_tests_properties(ros2bag_triggered_tests PROPERTIES TIMEOUT 100)
+  target_include_directories(ros2bag_triggered_tests PRIVATE include test)
+  target_include_directories(ros2bag_triggered_tests SYSTEM PRIVATE ${GTEST_INCLUDE_DIRS})
+  target_link_libraries(ros2bag_triggered_tests  ${PROJECT_NAME})
+  ament_target_dependencies(ros2bag_triggered_tests sensor_msgs std_msgs)
 
 endif()
 
