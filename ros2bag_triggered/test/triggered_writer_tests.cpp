@@ -186,7 +186,7 @@ TEST_F(TriggeredWriterTestFixture, test_valid_initialization)
   auto & test_helper = get_test_helper();
   EXPECT_NO_THROW(
     test_helper.initialize(prefix_path / "test/configs/valid_config/writer_config.yaml"));
-  EXPECT_EQ(test_helper.get_config().bag_root_dir, "/test_bags");
+  EXPECT_EQ(test_helper.get_config().bag_root_dir, "./test_bags");
   EXPECT_EQ(test_helper.get_config().trigger_buffer_duration, 600.0);
   EXPECT_EQ(test_helper.get_config().crop_gap, 1.0);
   EXPECT_TRUE(test_helper.get_config().bag_cropping);

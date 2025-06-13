@@ -1,6 +1,7 @@
 # ros2bag_triggered
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![ros2bag_triggered_build](https://github.com/saadehmd/ros2bag_triggered/actions/workflows/cmake-single-platform.yml/badge.svg)](https://github.com/saadehmd/ros2bag_triggered/actions/workflows/cmake-single-platform.yml) 
+[![ros2bag_triggered_build](https://github.com/saadehmd/ros2bag_triggered/actions/workflows/cmake-single-platform.yml/badge.svg)](https://github.com/saadehmd/ros2bag_triggered/actions/workflows/cmake-single-platform.yml)
+[![codecov](https://codecov.io/gh/saadehmd/ros2bag_triggered/branch/main/graph/badge.svg?token=2BFO38XIUY)](https://codecov.io/gh/saadehmd/ros2bag_triggered)
 
 A collection of helper classes for rosbag2 focused mainly at providing triggering functionality with ros2 bags.
 

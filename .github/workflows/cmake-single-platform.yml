@@ -60,14 +60,14 @@ jobs:
       run: |
         cd ros2_ws/ && source /opt/ros/jazzy/setup.bash
         colcon build --packages-select ros2bag_triggered --cmake-args -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="${CMAKE_CXX_FLAGS} --coverage" -DCMAKE_C_FLAGS="${CMAKE_C_FLAGS} --coverage"
-        lcov --no-external --ignore-errors mismatch --capture --initial --directory . --output-file ~/ros2_base.info
+        lcov --no-external --keep-going --capture --initial --directory . --output-file ~/ros2_base.info
         colcon test --packages-select ros2bag_triggered
         colcon test-result --all --verbose
 
     - name: Generate Code Coverage Report
       run: |
         cd ros2_ws/ && source /opt/ros/jazzy/setup.bash
-        lcov --no-external --ignore-errors mismatch --directory build/ros2bag_triggered --capture --output-file ~/ros2.info
+        lcov --no-external --keep-going --directory . --capture --output-file ~/ros2.info
         lcov --add-tracefile ~/ros2_base.info --add-tracefile ~/ros2.info --output-file ~/ros2_coverage.info
 
     - name: Upload coverage reports to Codecov
